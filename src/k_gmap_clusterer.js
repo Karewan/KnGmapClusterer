@@ -232,20 +232,14 @@ kGmapClusterer = {
 			const positon = new google.maps.LatLng(marker.geometry.coordinates[1], marker.geometry.coordinates[0]);
 
 			if(this.mOpt.hideDuplicate) {
-				let duplicate = false;
-
 				for(let i in this.mMarkers) {
 					if(!this.mMarkers[i].position.equals(positon)) continue;
-
-					duplicate = true;
 
 					if(this.mMarkers[i].get('duplicates')) this.mMarkers[i].get('duplicates').push(marker.id);
 					else this.mMarkers[i].set('duplicates', [marker.id]);
 
-					break;
+					return;
 				}
-
-				if(duplicate) return;
 			}
 
 			const m = new google.maps.Marker({

@@ -1,5 +1,5 @@
 /**
- * kGmapClusterer v1.0.1 (2021-10-17 20:53:12 +0200)
+ * kGmapClusterer v1.0.1 (2021-10-17 21:06:16 +0200)
  * Copyright (c) 2021 Florent VIALATTE
  * Released under the MIT license
  */
@@ -241,20 +241,14 @@ kGmapClusterer = {
 			const positon = new google.maps.LatLng(marker.geometry.coordinates[1], marker.geometry.coordinates[0]);
 
 			if(this.mOpt.hideDuplicate) {
-				let duplicate = false;
-
 				for(let i in this.mMarkers) {
 					if(!this.mMarkers[i].position.equals(positon)) continue;
-
-					duplicate = true;
 
 					if(this.mMarkers[i].get('duplicates')) this.mMarkers[i].get('duplicates').push(marker.id);
 					else this.mMarkers[i].set('duplicates', [marker.id]);
 
-					break;
+					return;
 				}
-
-				if(duplicate) return;
 			}
 
 			const m = new google.maps.Marker({
