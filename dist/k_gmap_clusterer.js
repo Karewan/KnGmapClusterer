@@ -1,5 +1,5 @@
 /**
- * kGmapClusterer v1.0.0 (2021-10-17 18:45:28 +0200)
+ * kGmapClusterer v1.0.0 (2021-10-17 18:51:36 +0200)
  * Copyright (c) 2021 Florent VIALATTE
  * Released under the MIT license
  */
@@ -171,8 +171,10 @@ kGmapClusterer = {
 				}
 			});
 
-			onMap.clusters.forEach(c => this.deleteMarkerFromMap(c));
-			onMap.markers.forEach(m => this.deleteMarkerFromMap(m));
+			setTimeout(() => {
+				onMap.clusters.forEach(c => this.deleteMarkerFromMap(c));
+				onMap.markers.forEach(m => this.deleteMarkerFromMap(m));
+			}, 0);
 		}
 
 		/**

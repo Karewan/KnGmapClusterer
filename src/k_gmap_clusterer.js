@@ -162,8 +162,10 @@ kGmapClusterer = {
 				}
 			});
 
-			onMap.clusters.forEach(c => this.deleteMarkerFromMap(c));
-			onMap.markers.forEach(m => this.deleteMarkerFromMap(m));
+			setTimeout(() => {
+				onMap.clusters.forEach(c => this.deleteMarkerFromMap(c));
+				onMap.markers.forEach(m => this.deleteMarkerFromMap(m));
+			}, 0);
 		}
 
 		/**
