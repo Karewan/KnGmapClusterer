@@ -1,5 +1,5 @@
 /**
- * kGmapClusterer v1.0.0 (2021-10-17 18:51:36 +0200)
+ * kGmapClusterer v1.0.0 (2021-10-17 19:17:27 +0200)
  * Copyright (c) 2021 Florent VIALATTE
  * Released under the MIT license
  */
@@ -38,7 +38,7 @@ kGmapClusterer = {
 
 			if(!this.mOpt) this.mOpt = {};
 			if(!this.mOpt.minZoom) this.mOpt.minZoom = 0;
-			if(!this.mOpt.maxZoom) this.mOpt.maxZoom = 16;
+			if(!this.mOpt.maxZoom) this.mOpt.maxZoom = 17;
 			if(!this.mOpt.minPoints) this.mOpt.minPoints = 2;
 			if(!this.mOpt.radius) this.mOpt.radius = 256;
 			if(!this.mOpt.clickToZoom) this.mOpt.clickToZoom = true;

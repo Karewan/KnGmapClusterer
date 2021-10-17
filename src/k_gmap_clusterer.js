@@ -29,7 +29,7 @@ kGmapClusterer = {
 
 			if(!this.mOpt) this.mOpt = {};
 			if(!this.mOpt.minZoom) this.mOpt.minZoom = 0;
-			if(!this.mOpt.maxZoom) this.mOpt.maxZoom = 16;
+			if(!this.mOpt.maxZoom) this.mOpt.maxZoom = 17;
 			if(!this.mOpt.minPoints) this.mOpt.minPoints = 2;
 			if(!this.mOpt.radius) this.mOpt.radius = 256;
 			if(!this.mOpt.clickToZoom) this.mOpt.clickToZoom = true;
