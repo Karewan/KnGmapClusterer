@@ -1,7 +1,7 @@
 'use strict';
 
 kGmapClusterer = {
-	VERSION: '1.0.0',
+	VERSION: '1.0.1',
 	Clusterer: class Clusterer {
 		/**
 		 * class constructor
@@ -33,6 +33,7 @@ kGmapClusterer = {
 			if(!this.mOpt.minPoints) this.mOpt.minPoints = 2;
 			if(!this.mOpt.radius) this.mOpt.radius = 256;
 			if(!this.mOpt.clickToZoom) this.mOpt.clickToZoom = true;
+			if(!this.mOpt.hideDuplicate) this.mOpt.hideDuplicate = false;
 			if(!this.mOpt.clusterIcon) this.mOpt.clusterIcon = null;
 			if(!this.mOpt.clusterFontColor) this.mOpt.clusterFontColor = '#000';
 			if(!this.mOpt.clusterFontSize) this.mOpt.clusterFontSize = '12px';
@@ -47,6 +48,7 @@ kGmapClusterer = {
 			this.mOpt.minPoints = opt.minPoints || this.mOpt.minPoints;
 			this.mOpt.radius = opt.radius || this.mOpt.radius;
 			this.mOpt.clickToZoom = opt.clickToZoom || this.mOpt.clickToZoom;
+			this.mOpt.hideDuplicate = opt.hideDuplicate || this.mOpt.hideDuplicate;
 			this.mOpt.clusterIcon = opt.clusterIcon || this.mOpt.clusterIcon;
 			this.mOpt.clusterFontColor = opt.clusterFontColor || this.mOpt.clusterFontColor;
 			this.mOpt.clusterFontSize = opt.clusterFontSize || this.mOpt.clusterFontSize;
@@ -81,7 +83,7 @@ kGmapClusterer = {
 
 			const bounds = new google.maps.LatLngBounds();
 
-			this.mFeatures.forEach(f => bounds.extend({
+			this.mSuperCluster.points.forEach(f => bounds.extend({
 				lat: f.geometry.coordinates[1],
 				lng: f.geometry.coordinates[0]
 			}));
@@ -103,11 +105,12 @@ kGmapClusterer = {
 		 */
 		load(features) {
 			console.log('Clusterer.load()', features);
+
 			this.clearMarkers();
-			this.mFeatures = features;
+			this.mSuperCluster.load(features);
 			this.fitMapToFeaturesBounds();
+
 			google.maps.event.addListenerOnce(this.mMap, 'idle', () => {
-				this.mSuperCluster.load(this.mFeatures);
 				this.getClusters();
 				this.initIdleListener();
 			});
@@ -146,12 +149,12 @@ kGmapClusterer = {
 				if(c.properties && c.properties.cluster === true) {
 					if(onMap.clusters.get(c.properties.cluster_id)) {
 						this.mMarkers.push(onMap.clusters.get(c.properties.cluster_id));
-						onMap.clusters.delete(c.properties.cluster_id)
+						onMap.clusters.delete(c.properties.cluster_id);
 						return;
 					}
 
 					this.addClusterToMap(c);
-				}else {
+				} else {
 					if(onMap.markers.get(c.id)) {
 						this.mMarkers.push(onMap.markers.get(c.id));
 						onMap.markers.delete(c.id);
@@ -174,18 +177,14 @@ kGmapClusterer = {
 		getMarkersOnMap() {
 			console.log('Clusterer.drawClusters()');
 
-			const clusters = new Map(),
-			markers = new Map();
+			const clusters = new Map(), markers = new Map();
 
 			this.mMarkers.forEach(m => {
 				if(m.get('cluster_id')) clusters.set(m.get('cluster_id'), m);
 				else markers.set(m.get('id'), m);
 			});
 
-			return {
-				clusters: clusters,
-				markers: markers
-			};
+			return { clusters, markers };
 		}
 
 		/**
@@ -227,18 +226,34 @@ kGmapClusterer = {
 
 		/**
 		 * add marker to map
-		 * @param cluster
+		 * @param marker
 		 */
 		addMarkerToMap(marker) {
 			console.log('Clusterer.addMarkerToMap()', marker);
 
+			const positon = new google.maps.LatLng(marker.geometry.coordinates[1], marker.geometry.coordinates[0]);
+
+			if(this.mOpt.hideDuplicate) {
+				let duplicate = false;
+
+				for(let i in this.mMarkers) {
+					if(!this.mMarkers[i].position.equals(positon)) continue;
+
+					duplicate = true;
+
+					if(this.mMarkers[i].get('duplicates')) this.mMarkers[i].get('duplicates').push(marker.id);
+					else this.mMarkers[i].set('duplicates', [marker.id]);
+
+					break;
+				}
+
+				if(duplicate) return;
+			}
+
 			const m = new google.maps.Marker({
 				map: this.mMap,
 				icon: (typeof this.mOpt.markerIcon == 'function' ? this.mOpt.markerIcon(marker) : this.mOpt.markerIcon) || null,
-				position: {
-					lat: marker.geometry.coordinates[1],
-					lng: marker.geometry.coordinates[0]
-				}
+				position: positon
 			});
 
 			m.set('id', marker.id);
@@ -278,7 +293,6 @@ kGmapClusterer = {
 			console.log('Clusterer.clearMarkers()');
 			this.removeIdleListener();
 			this.clearOnMapMarker();
-			this.mFeatures = [];
 		}
 	}
 };
