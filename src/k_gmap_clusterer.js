@@ -10,13 +10,30 @@ kGmapClusterer = {
 		 */
 		constructor(map, opt) {
 			console.log('Clusterer.constructor()', map, opt);
+
 			this.mMap = map;
-			this.setOptions(opt);
+
+			if(!opt) opt = {};
+			if(!opt.minZoom) opt.minZoom = 0;
+			if(!opt.maxZoom) opt.maxZoom = 17;
+			if(!opt.minPoints) opt.minPoints = 2;
+			if(!opt.radius) opt.radius = 256;
+			if(!opt.clickToZoom) opt.clickToZoom = true;
+			if(!opt.hideDuplicate) opt.hideDuplicate = false;
+			if(!opt.clusterIcon) opt.clusterIcon = null;
+			if(!opt.clusterFontColor) opt.clusterFontColor = '#000';
+			if(!opt.clusterFontSize) opt.clusterFontSize = '12px';
+			if(!opt.clusterFontFamily) opt.clusterFontFamily = 'sans-serif';
+			if(!opt.clusterFontWeight) opt.clusterFontWeight = 'normal';
+			if(!opt.markerIcon) opt.markerIcon = null;
+			if(!opt.onMarkerClick) opt.onMarkerClick = null;
+			this.mOpt = opt;
+
 			this.mSuperCluster = new Supercluster({
-				minZoom: this.mOpt.minZoom,
-				maxZoom: this.mOpt.maxZoom,
-				minPoints: this.mOpt.minPoints,
-				radius: this.mOpt.radius
+				minZoom: opt.minZoom,
+				maxZoom: opt.maxZoom,
+				minPoints: opt.minPoints,
+				radius: opt.radius
 			});
 		}
 
@@ -27,26 +44,7 @@ kGmapClusterer = {
 		setOptions(opt) {
 			console.log('Clusterer.setOptions()', opt);
 
-			if(!this.mOpt) this.mOpt = {};
-			if(!this.mOpt.minZoom) this.mOpt.minZoom = 0;
-			if(!this.mOpt.maxZoom) this.mOpt.maxZoom = 17;
-			if(!this.mOpt.minPoints) this.mOpt.minPoints = 2;
-			if(!this.mOpt.radius) this.mOpt.radius = 256;
-			if(!this.mOpt.clickToZoom) this.mOpt.clickToZoom = true;
-			if(!this.mOpt.hideDuplicate) this.mOpt.hideDuplicate = false;
-			if(!this.mOpt.clusterIcon) this.mOpt.clusterIcon = null;
-			if(!this.mOpt.clusterFontColor) this.mOpt.clusterFontColor = '#000';
-			if(!this.mOpt.clusterFontSize) this.mOpt.clusterFontSize = '12px';
-			if(!this.mOpt.clusterFontFamily) this.mOpt.clusterFontFamily = 'sans-serif';
-			if(!this.mOpt.clusterFontWeight) this.mOpt.clusterFontWeight = 'normal';
-			if(!this.mOpt.markerIcon) this.mOpt.markerIcon = null;
-			if(!this.mOpt.onMarkerClick) this.mOpt.onMarkerClick = null;
-
 			if(!opt) opt = {};
-			this.mOpt.minZoom = opt.minZoom || this.mOpt.minZoom;
-			this.mOpt.maxZoom = opt.maxZoom || this.mOpt.maxZoom;
-			this.mOpt.minPoints = opt.minPoints || this.mOpt.minPoints;
-			this.mOpt.radius = opt.radius || this.mOpt.radius;
 			this.mOpt.clickToZoom = opt.clickToZoom || this.mOpt.clickToZoom;
 			this.mOpt.hideDuplicate = opt.hideDuplicate || this.mOpt.hideDuplicate;
 			this.mOpt.clusterIcon = opt.clusterIcon || this.mOpt.clusterIcon;
