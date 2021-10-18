@@ -1,299 +1,522 @@
 /**
- * kGmapClusterer v1.0.1 (2021-10-17 21:06:16 +0200)
+ * kGmapClusterer v2.0.0 (2021-10-19 00:03:47 +0200)
  * Copyright (c) 2021 Florent VIALATTE
  * Released under the MIT license
  */
 
-/* supercluster@7.1.4 */
-!function(t,o){"object"==typeof exports&&"undefined"!=typeof module?module.exports=o():"function"==typeof define&&define.amd?define(o):(t="undefined"!=typeof globalThis?globalThis:t||self).Supercluster=o()}(this,(function(){"use strict";function t(e,n,r,i,s,a){if(!(s-i<=r)){var p=i+s>>1;o(e,n,p,i,s,a%2),t(e,n,r,i,p-1,a+1),t(e,n,r,p+1,s,a+1)}}function o(t,n,r,i,s,a){for(;s>i;){if(s-i>600){var p=s-i+1,h=r-i+1,u=Math.log(p),f=.5*Math.exp(2*u/3),d=.5*Math.sqrt(u*f*(p-f)/p)*(h-p/2<0?-1:1);o(t,n,r,Math.max(i,Math.floor(r-h*f/p+d)),Math.min(s,Math.floor(r+(p-h)*f/p+d)),a)}var l=n[2*r+a],m=i,c=s;for(e(t,n,i,r),n[2*s+a]>l&&e(t,n,i,s);m<c;){for(e(t,n,m,c),m++,c--;n[2*m+a]<l;)m++;for(;n[2*c+a]>l;)c--}n[2*i+a]===l?e(t,n,i,c):e(t,n,++c,s),c<=r&&(i=c+1),r<=c&&(s=c-1)}}function e(t,o,e,r){n(t,e,r),n(o,2*e,2*r),n(o,2*e+1,2*r+1)}function n(t,o,e){var n=t[o];t[o]=t[e],t[e]=n}function r(t,o,e,n){var r=t-e,i=o-n;return r*r+i*i}var i=function(t){return t[0]},s=function(t){return t[1]},a=function(o,e,n,r,a){void 0===e&&(e=i),void 0===n&&(n=s),void 0===r&&(r=64),void 0===a&&(a=Float64Array),this.nodeSize=r,this.points=o;for(var p=o.length<65536?Uint16Array:Uint32Array,h=this.ids=new p(o.length),u=this.coords=new a(2*o.length),f=0;f<o.length;f++)h[f]=f,u[2*f]=e(o[f]),u[2*f+1]=n(o[f]);t(h,u,r,0,h.length-1,0)};a.prototype.range=function(t,o,e,n){return function(t,o,e,n,r,i,s){for(var a,p,h=[0,t.length-1,0],u=[];h.length;){var f=h.pop(),d=h.pop(),l=h.pop();if(d-l<=s)for(var m=l;m<=d;m++)a=o[2*m],p=o[2*m+1],a>=e&&a<=r&&p>=n&&p<=i&&u.push(t[m]);else{var c=Math.floor((l+d)/2);a=o[2*c],p=o[2*c+1],a>=e&&a<=r&&p>=n&&p<=i&&u.push(t[c]);var v=(f+1)%2;(0===f?e<=a:n<=p)&&(h.push(l),h.push(c-1),h.push(v)),(0===f?r>=a:i>=p)&&(h.push(c+1),h.push(d),h.push(v))}}return u}(this.ids,this.coords,t,o,e,n,this.nodeSize)},a.prototype.within=function(t,o,e){return function(t,o,e,n,i,s){for(var a=[0,t.length-1,0],p=[],h=i*i;a.length;){var u=a.pop(),f=a.pop(),d=a.pop();if(f-d<=s)for(var l=d;l<=f;l++)r(o[2*l],o[2*l+1],e,n)<=h&&p.push(t[l]);else{var m=Math.floor((d+f)/2),c=o[2*m],v=o[2*m+1];r(c,v,e,n)<=h&&p.push(t[m]);var g=(u+1)%2;(0===u?e-i<=c:n-i<=v)&&(a.push(d),a.push(m-1),a.push(g)),(0===u?e+i>=c:n+i>=v)&&(a.push(m+1),a.push(f),a.push(g))}}return p}(this.ids,this.coords,t,o,e,this.nodeSize)};var p,h={minZoom:0,maxZoom:16,minPoints:2,radius:40,extent:512,nodeSize:64,log:!1,generateId:!1,reduce:null,map:function(t){return t}},u=Math.fround||(p=new Float32Array(1),function(t){return p[0]=+t,p[0]}),f=function(t){this.options=y(Object.create(h),t),this.trees=new Array(this.options.maxZoom+1)};function d(t,o,e,n,r){return{x:u(t),y:u(o),zoom:1/0,id:e,parentId:-1,numPoints:n,properties:r}}function l(t,o){var e=t.geometry.coordinates,n=e[0],r=e[1];return{x:u(v(n)),y:u(g(r)),zoom:1/0,index:o,parentId:-1}}function m(t){return{type:"Feature",id:t.id,properties:c(t),geometry:{type:"Point",coordinates:[(n=t.x,360*(n-.5)),(o=t.y,e=(180-360*o)*Math.PI/180,360*Math.atan(Math.exp(e))/Math.PI-90)]}};var o,e,n}function c(t){var o=t.numPoints,e=o>=1e4?Math.round(o/1e3)+"k":o>=1e3?Math.round(o/100)/10+"k":o;return y(y({},t.properties),{cluster:!0,cluster_id:t.id,point_count:o,point_count_abbreviated:e})}function v(t){return t/360+.5}function g(t){var o=Math.sin(t*Math.PI/180),e=.5-.25*Math.log((1+o)/(1-o))/Math.PI;return e<0?0:e>1?1:e}function y(t,o){for(var e in o)t[e]=o[e];return t}function x(t){return t.x}function M(t){return t.y}return f.prototype.load=function(t){var o=this.options,e=o.log,n=o.minZoom,r=o.maxZoom,i=o.nodeSize;e&&console.time("total time");var s="prepare "+t.length+" points";e&&console.time(s),this.points=t;for(var p=[],h=0;h<t.length;h++)t[h].geometry&&p.push(l(t[h],h));this.trees[r+1]=new a(p,x,M,i,Float32Array),e&&console.timeEnd(s);for(var u=r;u>=n;u--){var f=+Date.now();p=this._cluster(p,u),this.trees[u]=new a(p,x,M,i,Float32Array),e&&console.log("z%d: %d clusters in %dms",u,p.length,+Date.now()-f)}return e&&console.timeEnd("total time"),this},f.prototype.getClusters=function(t,o){var e=((t[0]+180)%360+360)%360-180,n=Math.max(-90,Math.min(90,t[1])),r=180===t[2]?180:((t[2]+180)%360+360)%360-180,i=Math.max(-90,Math.min(90,t[3]));if(t[2]-t[0]>=360)e=-180,r=180;else if(e>r){var s=this.getClusters([e,n,180,i],o),a=this.getClusters([-180,n,r,i],o);return s.concat(a)}for(var p=this.trees[this._limitZoom(o)],h=[],u=0,f=p.range(v(e),g(i),v(r),g(n));u<f.length;u+=1){var d=f[u],l=p.points[d];h.push(l.numPoints?m(l):this.points[l.index])}return h},f.prototype.getChildren=function(t){var o=this._getOriginId(t),e=this._getOriginZoom(t),n="No cluster with the specified id.",r=this.trees[e];if(!r)throw new Error(n);var i=r.points[o];if(!i)throw new Error(n);for(var s=this.options.radius/(this.options.extent*Math.pow(2,e-1)),a=[],p=0,h=r.within(i.x,i.y,s);p<h.length;p+=1){var u=h[p],f=r.points[u];f.parentId===t&&a.push(f.numPoints?m(f):this.points[f.index])}if(0===a.length)throw new Error(n);return a},f.prototype.getLeaves=function(t,o,e){o=o||10,e=e||0;var n=[];return this._appendLeaves(n,t,o,e,0),n},f.prototype.getTile=function(t,o,e){var n=this.trees[this._limitZoom(t)],r=Math.pow(2,t),i=this.options,s=i.extent,a=i.radius/s,p=(e-a)/r,h=(e+1+a)/r,u={features:[]};return this._addTileFeatures(n.range((o-a)/r,p,(o+1+a)/r,h),n.points,o,e,r,u),0===o&&this._addTileFeatures(n.range(1-a/r,p,1,h),n.points,r,e,r,u),o===r-1&&this._addTileFeatures(n.range(0,p,a/r,h),n.points,-1,e,r,u),u.features.length?u:null},f.prototype.getClusterExpansionZoom=function(t){for(var o=this._getOriginZoom(t)-1;o<=this.options.maxZoom;){var e=this.getChildren(t);if(o++,1!==e.length)break;t=e[0].properties.cluster_id}return o},f.prototype._appendLeaves=function(t,o,e,n,r){for(var i=0,s=this.getChildren(o);i<s.length;i+=1){var a=s[i],p=a.properties;if(p&&p.cluster?r+p.point_count<=n?r+=p.point_count:r=this._appendLeaves(t,p.cluster_id,e,n,r):r<n?r++:t.push(a),t.length===e)break}return r},f.prototype._addTileFeatures=function(t,o,e,n,r,i){for(var s=0,a=t;s<a.length;s+=1){var p=o[a[s]],h=p.numPoints,u=void 0,f=void 0,d=void 0;if(h)u=c(p),f=p.x,d=p.y;else{var l=this.points[p.index];u=l.properties,f=v(l.geometry.coordinates[0]),d=g(l.geometry.coordinates[1])}var m={type:1,geometry:[[Math.round(this.options.extent*(f*r-e)),Math.round(this.options.extent*(d*r-n))]],tags:u},y=void 0;h?y=p.id:this.options.generateId?y=p.index:this.points[p.index].id&&(y=this.points[p.index].id),void 0!==y&&(m.id=y),i.features.push(m)}},f.prototype._limitZoom=function(t){return Math.max(this.options.minZoom,Math.min(+t,this.options.maxZoom+1))},f.prototype._cluster=function(t,o){for(var e=[],n=this.options,r=n.radius,i=n.extent,s=n.reduce,a=n.minPoints,p=r/(i*Math.pow(2,o)),h=0;h<t.length;h++){var u=t[h];if(!(u.zoom<=o)){u.zoom=o;for(var f=this.trees[o+1],l=f.within(u.x,u.y,p),m=u.numPoints||1,c=m,v=0,g=l;v<g.length;v+=1){var y=g[v],x=f.points[y];x.zoom>o&&(c+=x.numPoints||1)}if(c>m&&c>=a){for(var M=u.x*m,_=u.y*m,w=s&&m>1?this._map(u,!0):null,P=(h<<5)+(o+1)+this.points.length,z=0,Z=l;z<Z.length;z+=1){var I=Z[z],F=f.points[I];if(!(F.zoom<=o)){F.zoom=o;var b=F.numPoints||1;M+=F.x*b,_+=F.y*b,F.parentId=P,s&&(w||(w=this._map(u,!0)),s(w,this._map(F)))}}u.parentId=P,e.push(d(M/c,_/c,P,c,w))}else if(e.push(u),c>1)for(var A=0,C=l;A<C.length;A+=1){var T=C[A],E=f.points[T];E.zoom<=o||(E.zoom=o,e.push(E))}}}return e},f.prototype._getOriginId=function(t){return t-this.points.length>>5},f.prototype._getOriginZoom=function(t){return(t-this.points.length)%32},f.prototype._map=function(t,o){if(t.numPoints)return o?y({},t.properties):t.properties;var e=this.points[t.index].properties,n=this.options.map(e);return o&&n===e?y({},n):n},f}));
+!function(t,o){"object"==typeof exports&&"undefined"!=typeof module?module.exports=o():"function"==typeof define&&define.amd?define(o):t.KDBush=o()}(this,function(){"use strict";function t(n,r,i,e,h,u){if(!(h-e<=i)){var s=e+h>>1;!function t(n,r,i,e,h,u){for(;h>e;){if(h-e>600){var s=h-e+1,f=i-e+1,p=Math.log(s),a=.5*Math.exp(2*p/3),d=.5*Math.sqrt(p*a*(s-a)/s)*(f-s/2<0?-1:1),v=Math.max(e,Math.floor(i-f*a/s+d)),c=Math.min(h,Math.floor(i+(s-f)*a/s+d));t(n,r,i,v,c,u)}var l=r[2*i+u],g=e,M=h;for(o(n,r,e,i),r[2*h+u]>l&&o(n,r,e,h);g<M;){for(o(n,r,g,M),g++,M--;r[2*g+u]<l;)g++;for(;r[2*M+u]>l;)M--}r[2*e+u]===l?o(n,r,e,M):o(n,r,++M,h),M<=i&&(e=M+1),i<=M&&(h=M-1)}}(n,r,s,e,h,u%2),t(n,r,i,e,s-1,u+1),t(n,r,i,s+1,h,u+1)}}function o(t,o,r,i){n(t,r,i),n(o,2*r,2*i),n(o,2*r+1,2*i+1)}function n(t,o,n){var r=t[o];t[o]=t[n],t[n]=r}function r(t,o,n,r){var i=t-n,e=o-r;return i*i+e*e}var i=function(t){return t[0]},e=function(t){return t[1]},h=function(o,n,r,h,u){void 0===n&&(n=i),void 0===r&&(r=e),void 0===h&&(h=64),void 0===u&&(u=Float64Array),this.nodeSize=h,this.points=o;for(var s=o.length<65536?Uint16Array:Uint32Array,f=this.ids=new s(o.length),p=this.coords=new u(2*o.length),a=0;a<o.length;a++)f[a]=a,p[2*a]=n(o[a]),p[2*a+1]=r(o[a]);t(f,p,h,0,f.length-1,0)};return h.prototype.range=function(t,o,n,r){return function(t,o,n,r,i,e,h){for(var u,s,f=[0,t.length-1,0],p=[];f.length;){var a=f.pop(),d=f.pop(),v=f.pop();if(d-v<=h)for(var c=v;c<=d;c++)u=o[2*c],s=o[2*c+1],u>=n&&u<=i&&s>=r&&s<=e&&p.push(t[c]);else{var l=Math.floor((v+d)/2);u=o[2*l],s=o[2*l+1],u>=n&&u<=i&&s>=r&&s<=e&&p.push(t[l]);var g=(a+1)%2;(0===a?n<=u:r<=s)&&(f.push(v),f.push(l-1),f.push(g)),(0===a?i>=u:e>=s)&&(f.push(l+1),f.push(d),f.push(g))}}return p}(this.ids,this.coords,t,o,n,r,this.nodeSize)},h.prototype.within=function(t,o,n){return function(t,o,n,i,e,h){for(var u=[0,t.length-1,0],s=[],f=e*e;u.length;){var p=u.pop(),a=u.pop(),d=u.pop();if(a-d<=h)for(var v=d;v<=a;v++)r(o[2*v],o[2*v+1],n,i)<=f&&s.push(t[v]);else{var c=Math.floor((d+a)/2),l=o[2*c],g=o[2*c+1];r(l,g,n,i)<=f&&s.push(t[c]);var M=(p+1)%2;(0===p?n-e<=l:i-e<=g)&&(u.push(d),u.push(c-1),u.push(M)),(0===p?n+e>=l:i+e>=g)&&(u.push(c+1),u.push(a),u.push(M))}}return s}(this.ids,this.coords,t,o,n,this.nodeSize)},h});
+
+const defaultOptions = {
+	minZoom: 0,   // min zoom to generate clusters on
+	maxZoom: 16,  // max zoom level to cluster the points on
+	minPoints: 2, // minimum points to form a cluster
+	radius: 40,   // cluster radius in pixels
+	extent: 512,  // tile extent (radius is calculated relative to it)
+	nodeSize: 64, // size of the KD-tree leaf node, affects performance
+
+	// properties to use for individual points when running the reducer
+	map: props => props // props => ({sum: props.my_value})
+};
+
+const fround = Math.fround || (tmp => ((x) => { tmp[0] = +x; return tmp[0]; }))(new Float32Array(1));
+
+class Supercluster {
+	constructor(options) {
+		this.options = extend(Object.create(defaultOptions), options);
+		this.trees = new Array(this.options.maxZoom + 1);
+	}
+
+	load(points) {
+		const {minZoom, maxZoom, nodeSize} = this.options;
+
+		this.points = points;
+
+		// generate a cluster object for each point and index input points into a KD-tree
+		let clusters = [];
+		points.forEach((p, i) => clusters.push(createPointCluster(p, i)));
+		this.trees[maxZoom + 1] = new KDBush(clusters, getX, getY, nodeSize, Float32Array);
+
+
+		// cluster points on max zoom, then cluster the results on previous zoom, etc.;
+		// results in a cluster hierarchy across zoom levels
+		for (let z = maxZoom; z >= minZoom; z--) {
+			// create a new set of clusters for the zoom and index them with a KD-tree
+			clusters = this._cluster(clusters, z);
+			this.trees[z] = new KDBush(clusters, getX, getY, nodeSize, Float32Array);
+		}
+
+		return this;
+	}
+
+	getClusters(bbox, zoom) {
+		let minLng = ((bbox[0] + 180) % 360 + 360) % 360 - 180;
+		const minLat = Math.max(-90, Math.min(90, bbox[1]));
+		let maxLng = bbox[2] === 180 ? 180 : ((bbox[2] + 180) % 360 + 360) % 360 - 180;
+		const maxLat = Math.max(-90, Math.min(90, bbox[3]));
+
+		if (bbox[2] - bbox[0] >= 360) {
+			minLng = -180;
+			maxLng = 180;
+		} else if (minLng > maxLng) {
+			const easternHem = this.getClusters([minLng, minLat, 180, maxLat], zoom);
+			const westernHem = this.getClusters([-180, minLat, maxLng, maxLat], zoom);
+			return easternHem.concat(westernHem);
+		}
+
+		const tree = this.trees[this._limitZoom(zoom)];
+		const ids = tree.range(lngX(minLng), latY(maxLat), lngX(maxLng), latY(minLat));
+		const clusters = [];
+		for (const id of ids) {
+			const c = tree.points[id];
+			clusters.push(c.numPoints ? getClusterJSON(c) : this.points[c.index]);
+		}
+		return clusters;
+	}
+
+	getChildren(clusterId) {
+		const originId = this._getOriginId(clusterId);
+		const originZoom = this._getOriginZoom(clusterId);
+		const errorMsg = 'No cluster with the specified id.';
+
+		const index = this.trees[originZoom];
+		if (!index) throw new Error(errorMsg);
+
+		const origin = index.points[originId];
+		if (!origin) throw new Error(errorMsg);
+
+		const r = this.options.radius / (this.options.extent * Math.pow(2, originZoom - 1));
+		const ids = index.within(origin.x, origin.y, r);
+		const children = [];
+		for (const id of ids) {
+			const c = index.points[id];
+			if (c.parentId === clusterId) {
+				children.push(c.numPoints ? getClusterJSON(c) : this.points[c.index]);
+			}
+		}
+
+		if (children.length === 0) throw new Error(errorMsg);
+
+		return children;
+	}
+
+	getClusterExpansionZoom(clusterId) {
+		let expansionZoom = this._getOriginZoom(clusterId) - 1;
+		while (expansionZoom <= this.options.maxZoom) {
+			const children = this.getChildren(clusterId);
+			expansionZoom++;
+			if (children.length !== 1) break;
+			clusterId = children[0].d.cluster_id;
+		}
+		return expansionZoom;
+	}
+
+	_limitZoom(z) {
+		return Math.max(this.options.minZoom, Math.min(+z, this.options.maxZoom + 1));
+	}
+
+	_cluster(points, zoom) {
+		const clusters = [];
+		const {radius, extent, minPoints} = this.options;
+		const r = radius / (extent * Math.pow(2, zoom));
+
+		// loop through each point
+		for (let i = 0; i < points.length; i++) {
+			const p = points[i];
+			// if we've already visited the point at this zoom level, skip it
+			if (p.zoom <= zoom) continue;
+			p.zoom = zoom;
+
+			// find all nearby points
+			const tree = this.trees[zoom + 1];
+			const neighborIds = tree.within(p.x, p.y, r);
+
+			const numPointsOrigin = p.numPoints || 1;
+			let numPoints = numPointsOrigin;
+
+			// count the number of points in a potential cluster
+			for (const neighborId of neighborIds) {
+				const b = tree.points[neighborId];
+				// filter out neighbors that are already processed
+				if (b.zoom > zoom) numPoints += b.numPoints || 1;
+			}
+
+			// if there were neighbors to merge, and there are enough points to form a cluster
+			if (numPoints > numPointsOrigin && numPoints >= minPoints) {
+				let wx = p.x * numPointsOrigin;
+				let wy = p.y * numPointsOrigin;
+
+				let clusterProperties = numPointsOrigin > 1 ? this._map(p, true) : null;
+
+				// encode both zoom and point index on which the cluster originated -- offset by total length of features
+				const id = (i << 5) + (zoom + 1) + this.points.length;
+
+				for (const neighborId of neighborIds) {
+					const b = tree.points[neighborId];
+
+					if (b.zoom <= zoom) continue;
+					b.zoom = zoom; // save the zoom (so it doesn't get processed twice)
+
+					const numPoints2 = b.numPoints || 1;
+					wx += b.x * numPoints2; // accumulate coordinates for calculating weighted center
+					wy += b.y * numPoints2;
+
+					b.parentId = id;
+				}
+
+				p.parentId = id;
+				clusters.push(createCluster(wx / numPoints, wy / numPoints, id, numPoints, clusterProperties));
+
+			} else { // left points as unclustered
+				clusters.push(p);
+
+				if (numPoints > 1) {
+					for (const neighborId of neighborIds) {
+						const b = tree.points[neighborId];
+						if (b.zoom <= zoom) continue;
+						b.zoom = zoom;
+						clusters.push(b);
+					}
+				}
+			}
+		}
+
+		return clusters;
+	}
+
+	// get index of the point from which the cluster originated
+	_getOriginId(clusterId) {
+		return (clusterId - this.points.length) >> 5;
+	}
+
+	// get zoom of the point from which the cluster originated
+	_getOriginZoom(clusterId) {
+		return (clusterId - this.points.length) % 32;
+	}
+
+	_map(point, clone) {
+		if (point.numPoints) {
+			return clone ? extend({}, point.d) : point.d;
+		}
+		const original = this.points[point.index].d;
+		const result = this.options.map(original);
+		return clone && result === original ? extend({}, result) : result;
+	}
+}
+
+function createCluster(x, y, id, numPoints, d) {
+	return {
+		x: fround(x), // weighted cluster center; round for consistency with Float32Array index
+		y: fround(y),
+		zoom: Infinity, // the last zoom the cluster was processed at
+		id, // encodes index of the first child of the cluster and its zoom level
+		parentId: -1, // parent cluster id
+		numPoints,
+		d
+	};
+}
+
+function createPointCluster(p, id) {
+	return {
+		x: fround(lngX(p.x)), // projected point coordinates
+		y: fround(latY(p.y)),
+		zoom: Infinity, // the last zoom the point was processed at
+		index: id, // index of the source feature in the original input array,
+		parentId: -1 // parent cluster id
+	};
+}
+
+function getClusterJSON(cluster) {
+	return {
+		x: xLng(cluster.x),
+		y: yLat(cluster.y),
+		d: getClusterProperties(cluster)
+	};
+}
+
+function getClusterProperties(cluster) {
+	const count = cluster.numPoints;
+	const abbrev =
+		count >= 10000 ? `${Math.round(count / 1000)  }k` :
+		count >= 1000 ? `${Math.round(count / 100) / 10  }k` : count;
+
+	return extend(extend({}, cluster.d), {
+		cluster_id: cluster.id,
+		nb_points: count,
+		nb_points_abbr: abbrev
+	});
+}
+
+// longitude/latitude to spherical mercator in [0..1] range
+function lngX(lng) {
+	return lng / 360 + 0.5;
+}
+function latY(lat) {
+	const sin = Math.sin(lat * Math.PI / 180);
+	const y = (0.5 - 0.25 * Math.log((1 + sin) / (1 - sin)) / Math.PI);
+	return y < 0 ? 0 : y > 1 ? 1 : y;
+}
+
+// spherical mercator to longitude/latitude
+function xLng(x) {
+	return (x - 0.5) * 360;
+}
+function yLat(y) {
+	const y2 = (180 - y * 360) * Math.PI / 180;
+	return 360 * Math.atan(Math.exp(y2)) / Math.PI - 90;
+}
+
+function extend(dest, src) {
+	for (const id in src) dest[id] = src[id];
+	return dest;
+}
+
+function getX(p) {
+	return p.x;
+}
+function getY(p) {
+	return p.y;
+}
 
 'use strict';
 
-kGmapClusterer = {
-	VERSION: '1.0.1',
-	Clusterer: class Clusterer {
-		/**
-		 * class constructor
-		 * @param map
-		 * @param opt
-		 */
-		constructor(map, opt) {
-			console.log('Clusterer.constructor()', map, opt);
+const kGmapClusterer = function() {
+	const VERSION = '2.0.0',
+	GV = {};
 
-			this.mMap = map;
+	/**
+	 * init kGmapClusterer
+	 * @param map
+	 * @param opt
+	 */
+	function init(map, opt) {
+		console.log('kGmapClusterer.init()');
 
-			if(!opt) opt = {};
-			if(!opt.minZoom) opt.minZoom = 0;
-			if(!opt.maxZoom) opt.maxZoom = 17;
-			if(!opt.minPoints) opt.minPoints = 2;
-			if(!opt.radius) opt.radius = 256;
-			if(!opt.clickToZoom) opt.clickToZoom = true;
-			if(!opt.hideDuplicate) opt.hideDuplicate = false;
-			if(!opt.clusterIcon) opt.clusterIcon = null;
-			if(!opt.clusterFontColor) opt.clusterFontColor = '#000';
-			if(!opt.clusterFontSize) opt.clusterFontSize = '12px';
-			if(!opt.clusterFontFamily) opt.clusterFontFamily = 'sans-serif';
-			if(!opt.clusterFontWeight) opt.clusterFontWeight = 'normal';
-			if(!opt.markerIcon) opt.markerIcon = null;
-			if(!opt.onMarkerClick) opt.onMarkerClick = null;
-			this.mOpt = opt;
+		if(!opt) opt = {};
+		if(!opt.minZoom) opt.minZoom = 0;
+		if(!opt.maxZoom) opt.maxZoom = 16;
+		if(!opt.minPoints) opt.minPoints = 2;
+		if(!opt.radius) opt.radius = 256;
+		if(!opt.extent) opt.extent = 512;
+		if(!opt.nodeSize) opt.nodeSize = 64;
+		if(!opt.clickToZoom) opt.clickToZoom = true;
+		if(!opt.clusterIcon) opt.clusterIcon = null;
+		if(!opt.clusterFontColor) opt.clusterFontColor = '#000';
+		if(!opt.clusterFontSize) opt.clusterFontSize = '12px';
+		if(!opt.clusterFontFamily) opt.clusterFontFamily = 'sans-serif';
+		if(!opt.clusterFontWeight) opt.clusterFontWeight = 'normal';
+		if(!opt.markerIcon) opt.markerIcon = null;
+		if(!opt.onMarkerClick) opt.onMarkerClick = null;
 
-			this.mSuperCluster = new Supercluster({
-				minZoom: opt.minZoom,
-				maxZoom: opt.maxZoom,
-				minPoints: opt.minPoints,
-				radius: opt.radius
-			});
-		}
+		GV.map = map;
+		GV.opt = opt;
+		GV.markers = new Map();
+		GV.supercluster = new Supercluster({
+			minZoom: opt.minZoom,
+			maxZoom: opt.maxZoom,
+			minPoints: opt.minPoints,
+			radius: opt.radius,
+			extent: opt.extent,
+			nodeSize: opt.nodeSize
+		});
+	}
 
-		/**
-		 * set options
-		 * @param opt
-		 */
-		setOptions(opt) {
-			console.log('Clusterer.setOptions()', opt);
+	/**
+	 * set options
+	 * @param opt
+	 */
+	function setOptions(opt) {
+		console.log('kGmapClusterer.setOptions()', opt);
 
-			if(!opt) opt = {};
-			this.mOpt.clickToZoom = opt.clickToZoom || this.mOpt.clickToZoom;
-			this.mOpt.hideDuplicate = opt.hideDuplicate || this.mOpt.hideDuplicate;
-			this.mOpt.clusterIcon = opt.clusterIcon || this.mOpt.clusterIcon;
-			this.mOpt.clusterFontColor = opt.clusterFontColor || this.mOpt.clusterFontColor;
-			this.mOpt.clusterFontSize = opt.clusterFontSize || this.mOpt.clusterFontSize;
-			this.mOpt.clusterFontFamily = opt.clusterFontFamily || this.mOpt.clusterFontFamily;
-			this.mOpt.clusterFontWeight = opt.clusterFontWeight || this.mOpt.clusterFontWeight;
-			this.mOpt.markerIcon = opt.markerIcon || this.mOpt.markerIcon;
-			this.mOpt.onMarkerClick = opt.onMarkerClick || this.mOpt.onMarkerClick;
-		}
+		GV.opt.clickToZoom = opt.clickToZoom || GV.opt.clickToZoom;
+		GV.opt.clusterIcon = opt.clusterIcon || GV.opt.clusterIcon;
+		GV.opt.clusterFontColor = opt.clusterFontColor || GV.opt.clusterFontColor;
+		GV.opt.clusterFontSize = opt.clusterFontSize || GV.opt.clusterFontSize;
+		GV.opt.clusterFontFamily = opt.clusterFontFamily || GV.opt.clusterFontFamily;
+		GV.opt.clusterFontWeight = opt.clusterFontWeight || GV.opt.clusterFontWeight;
+		GV.opt.markerIcon = opt.markerIcon || GV.opt.markerIcon;
+		GV.opt.onMarkerClick = opt.onMarkerClick || GV.opt.onMarkerClick;
+	}
 
-		/**
-		 * Set the idle listener
-		 */
-		initIdleListener() {
-			console.log('Clusterer.initIdleListener()');
-			this.mIdleListener = this.mMap.addListener('idle', () => this.getClusters());
-		}
+	/**
+	 * add idle listener
+	 */
+	function addIdleListener() {
+		console.log('kGmapClusterer.addIdleListener()');
+		GV.idle_listener = GV.map.addListener('idle', onMapIdle);
+	}
 
-		/**
-		 * Remove the idle listener
-		 */
-		removeIdleListener() {
-			console.log('Clusterer.removeIdleListener()');
-			if(this.mIdleListener) this.mIdleListener.remove();
-		}
+	/**
+	 * on map idle
+	 */
+	function onMapIdle() {
+		console.log('kGmapClusterer.onMapIdle()');
+		drawClusters(GV.map.getBounds(), GV.map.getZoom());
+	}
 
-		/**
-		 * get features bounds
-		 * @return LatLngBounds
-		 */
-		getFeaturesBounds() {
-			console.log('Clusterer.getFeaturesBounds()');
+	/**
+	 * remove idle listener
+	 */
+	function removeIdleListener() {
+		console.log('kGmapClusterer.removeIdleListener()');
+		if(!GV.idle_listener) return;
+		GV.idle_listener.remove();
+		GV.idle_listener = null;
+	}
 
-			const bounds = new google.maps.LatLngBounds();
+	/**
+	 * load points
+	 * @param points
+	 */
+	function load(points) {
+		console.log('kGmapClusterer.load()');
 
-			this.mSuperCluster.points.forEach(f => bounds.extend({
-				lat: f.geometry.coordinates[1],
-				lng: f.geometry.coordinates[0]
-			}));
+		// Clear markers
+		clearMarkers();
 
-			return bounds;
-		}
+		// Load point into supercluster
+		GV.supercluster.load(points);
 
-		/**
-		 * fit map to features
-		 */
-		fitMapToFeaturesBounds() {
-			console.log('Clusterer.fitMapToFeaturesBounds()');
-			this.mMap.fitBounds(this.getFeaturesBounds());
-		}
+		// Fit map to bounds
+		const bounds = new google.maps.LatLngBounds();
+		points.forEach(p => bounds.extend({lat: p.y, lng: p.x}));
+		GV.map.fitBounds(bounds);
 
-		/**
-		 * load features into supercluster
-		 * @param features
-		 */
-		load(features) {
-			console.log('Clusterer.load()', features);
+		// Add the idle listener => drawClusters
+		addIdleListener();
+	}
 
-			this.clearMarkers();
-			this.mSuperCluster.load(features);
-			this.fitMapToFeaturesBounds();
+	/**
+	 * draw clusters
+	 * @param bounds
+	 * @param zoom
+	 */
+	function drawClusters(bounds, zoom) {
+		console.log('kGmapClusterer.drawClusters()', bounds, zoom);
 
-			google.maps.event.addListenerOnce(this.mMap, 'idle', () => {
-				this.getClusters();
-				this.initIdleListener();
-			});
-		}
+		const old_markers = new Map(GV.markers);
+		GV.markers.clear();
 
-		/**
-		 * get clusters from supercluster
-		 */
-		getClusters() {
-			console.log('Clusterer.getClusters()');
+		GV.supercluster.getClusters([bounds.getSouthWest().lng(), bounds.getSouthWest().lat(), bounds.getNorthEast().lng(), bounds.getNorthEast().lat()], zoom).forEach(c => {
+			console.log("kGmapClusterer.drawClusters()", c);
 
-			const bounds = this.mMap.getBounds();
-
-			const clusters = this.mSuperCluster.getClusters([
-				bounds.getSouthWest().lng(),
-				bounds.getSouthWest().lat(),
-				bounds.getNorthEast().lng(),
-				bounds.getNorthEast().lat()
-			], this.mMap.getZoom());
-
-			this.drawClusters(clusters);
-		}
-
-		/**
-		 * draw clusters
-		 * @param clusters
-		 */
-		drawClusters(clusters) {
-			console.log('Clusterer.drawClusters()', clusters);
-
-			if(!this.mMarkers) this.mMarkers = [];
-			const onMap = this.getMarkersOnMap();
-			this.mMarkers = [];
-
-			clusters.forEach(c => {
-				if(c.properties && c.properties.cluster === true) {
-					if(onMap.clusters.get(c.properties.cluster_id)) {
-						this.mMarkers.push(onMap.clusters.get(c.properties.cluster_id));
-						onMap.clusters.delete(c.properties.cluster_id);
-						return;
-					}
-
-					this.addClusterToMap(c);
-				} else {
-					if(onMap.markers.get(c.id)) {
-						this.mMarkers.push(onMap.markers.get(c.id));
-						onMap.markers.delete(c.id);
-						return;
-					}
-
-					this.addMarkerToMap(c);
-				}
-			});
-
-			setTimeout(() => {
-				onMap.clusters.forEach(c => this.deleteMarkerFromMap(c));
-				onMap.markers.forEach(m => this.deleteMarkerFromMap(m));
-			}, 0);
-		}
-
-		/**
-		 * get markers on map
-		 */
-		getMarkersOnMap() {
-			console.log('Clusterer.drawClusters()');
-
-			const clusters = new Map(), markers = new Map();
-
-			this.mMarkers.forEach(m => {
-				if(m.get('cluster_id')) clusters.set(m.get('cluster_id'), m);
-				else markers.set(m.get('id'), m);
-			});
-
-			return { clusters, markers };
-		}
-
-		/**
-		 * add cluster to map
-		 * @param cluster
-		 */
-		addClusterToMap(cluster) {
-			console.log('Clusterer.addClusterToMap()', cluster);
-
-			const m = new google.maps.Marker({
-				map: this.mMap,
-				icon: (typeof this.mOpt.clusterIcon == 'function' ? this.mOpt.clusterIcon(cluster) : this.mOpt.clusterIcon) || null,
-				zIndex: Number(google.maps.Marker.MAX_ZINDEX) + cluster.properties.point_count,
-				position: {
-					lat: cluster.geometry.coordinates[1],
-					lng: cluster.geometry.coordinates[0]
-				},
-				label: {
-					text: String(cluster.properties.point_count_abbreviated),
-					color: this.mOpt.clusterFontColor,
-					fontSize: this.mOpt.clusterFontSize,
-					fontWeight: this.mOpt.clusterFontWeight,
-					fontFamily: this.mOpt.clusterFontFamily
-				}
-			});
-
-			m.set('cluster_id', cluster.properties.cluster_id);
-
-			if(this.mOpt.clickToZoom) m.set('click_listener', m.addListener('click', e => {
-				e.stop();
-				this.mMap.setOptions({
-					center: m.getPosition(),
-					zoom: this.mSuperCluster.getClusterExpansionZoom(m.get('cluster_id'))
-				});
-			}));
-
-			this.mMarkers.push(m);
-		}
-
-		/**
-		 * add marker to map
-		 * @param marker
-		 */
-		addMarkerToMap(marker) {
-			console.log('Clusterer.addMarkerToMap()', marker);
-
-			const positon = new google.maps.LatLng(marker.geometry.coordinates[1], marker.geometry.coordinates[0]);
-
-			if(this.mOpt.hideDuplicate) {
-				for(let i in this.mMarkers) {
-					if(!this.mMarkers[i].position.equals(positon)) continue;
-
-					if(this.mMarkers[i].get('duplicates')) this.mMarkers[i].get('duplicates').push(marker.id);
-					else this.mMarkers[i].set('duplicates', [marker.id]);
-
+			if(c.d.cluster_id) {
+				if(old_markers.has('c' + c.d.cluster_id)) {
+					console.log('kGmapClusterer.drawClusters() cluster already on map');
+					GV.markers.set('c' + c.d.cluster_id, old_markers.get('c' + c.d.cluster_id));
+					old_markers.delete('c' + c.d.cluster_id);
 					return;
 				}
+
+				addClusterToMap(c);
+			} else {
+				if(old_markers.has('m' + c.d.id)) {
+					console.log('kGmapClusterer.drawClusters() marker already on map');
+					GV.markers.set('m' + c.d.id, old_markers.get('m' + c.d.id));
+					old_markers.delete('m' + c.d.id);
+					return;
+				}
+
+				addMarkerToMap(c);
 			}
+		});
 
-			const m = new google.maps.Marker({
-				map: this.mMap,
-				icon: (typeof this.mOpt.markerIcon == 'function' ? this.mOpt.markerIcon(marker) : this.mOpt.markerIcon) || null,
-				position: positon
-			});
-
-			m.set('id', marker.id);
-
-			if(this.mOpt.onMarkerClick) m.set('click_listener', m.addListener('click', e => {
-				e.stop();
-				this.mOpt.onMarkerClick(m);
-			}));
-
-			this.mMarkers.push(m);
-		}
-
-		/**
-		 * delete marker from map
-		 * @param marker
-		 */
-		deleteMarkerFromMap(marker) {
-			console.log('Clusterer.deleteMarkerFromMap()', marker);
-			if(marker.get('click_listener')) marker.get('click_listener').remove();
-			marker.setMap(null);
-		}
-
-		/**
-		 * clear on map marker
-		 */
-		clearOnMapMarker() {
-			console.log('Clusterer.clearOnMapMarker()');
-			if(!this.mMarkers) return;
-			this.mMarkers.forEach(m => this.deleteMarkerFromMap(m));
-			this.mMarkers = [];
-		}
-
-		/**
-		 * clear markers
-		 */
-		clearMarkers() {
-			console.log('Clusterer.clearMarkers()');
-			this.removeIdleListener();
-			this.clearOnMapMarker();
-		}
+		old_markers.forEach(m => removeMarkerFromMap(m));
 	}
-};
+
+	/**
+	 * add cluster to map
+	 * @param c
+	 */
+	function addClusterToMap(c) {
+		console.log('kGmapClusterer.addClusterToMap()', c);
+
+		const marker = new google.maps.Marker({
+			k_data: c.d,
+			map: GV.map,
+			icon: (typeof GV.opt.clusterIcon == 'function' ? GV.opt.clusterIcon(c) : GV.opt.clusterIcon) || null,
+			zIndex: Number(google.maps.Marker.MAX_ZINDEX) + c.d.nb_points,
+			position: { lat: c.y, lng: c.x },
+			label: {
+				text: String(c.d.nb_points_abbr),
+				color: GV.opt.clusterFontColor,
+				fontSize: GV.opt.clusterFontSize,
+				fontWeight: GV.opt.clusterFontWeight,
+				fontFamily: GV.opt.clusterFontFamily
+			}
+		});
+
+		if(GV.opt.clickToZoom) marker.k_click_listener = marker.addListener('click', onClusterClick);
+
+		GV.markers.set('c' + c.d.cluster_id, marker);
+	}
+
+	/**
+	 * on cluster click
+	 * @param e
+	 */
+	function onClusterClick(e) {
+		console.log('kGmapClusterer.onClusterClick()', e);
+		e.stop();
+		GV.map.setOptions({
+			center: this.getPosition(),
+			zoom: GV.supercluster.getClusterExpansionZoom(this.k_data.cluster_id)
+		});
+	}
+
+	/**
+	 * add marker to map
+	 * @param m
+	 */
+	function addMarkerToMap(m) {
+		console.log('kGmapClusterer.addMarkerToMap()', m);
+
+		const marker = new google.maps.Marker({
+			k_data: m.d,
+			map: GV.map,
+			icon: (typeof GV.opt.markerIcon == 'function' ? GV.opt.markerIcon(m) : GV.opt.markerIcon) || null,
+			position: { lat: m.y, lng: m.x }
+		});
+
+		if(GV.opt.onMarkerClick) marker.k_click_listener = marker.addListener('click', GV.opt.onMarkerClick);
+
+		GV.markers.set('m' + m.d.id, marker);
+	}
+
+	/**
+	 * get markers
+	 * @return array
+	 */
+	function getMarkers() {
+		console.log('kGmapClusterer.getMarkers()');
+		return GV.markers;
+	}
+
+	/**
+	 * remove marker from map
+	 * @param m
+	 */
+	function removeMarkerFromMap(m) {
+		console.log('kGmapClusterer.removeMarkerFromMap()', m);
+		if(m.k_click_listener) m.k_click_listener.remove();
+		m.setMap(null);
+	}
+
+	/**
+	 * clear markers
+	 */
+	function clearMarkers() {
+		console.log('kGmapClusterer.clearMarkers()');
+		removeIdleListener();
+		GV.markers.forEach(m => removeMarkerFromMap(m));
+		GV.markers.clear();
+	}
+
+	return {
+		VERSION,
+		init,
+		setOptions,
+		load,
+		getMarkers,
+		clearMarkers
+	}
+}();
