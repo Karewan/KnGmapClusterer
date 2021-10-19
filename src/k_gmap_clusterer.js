@@ -1,7 +1,7 @@
 'use strict';
 
 const kGmapClusterer = function() {
-	const VERSION = '2.0.0',
+	const VERSION = '2.0.1',
 	GV = {};
 
 	/**
@@ -25,6 +25,10 @@ const kGmapClusterer = function() {
 		if(!opt.clusterFontSize) opt.clusterFontSize = '12px';
 		if(!opt.clusterFontFamily) opt.clusterFontFamily = 'sans-serif';
 		if(!opt.clusterFontWeight) opt.clusterFontWeight = 'normal';
+		if(!opt.markerFontColor) opt.markerFontColor = '#000';
+		if(!opt.markerFontSize) opt.markerFontSize = '12px';
+		if(!opt.markerFontFamily) opt.markerFontFamily = 'sans-serif';
+		if(!opt.markerFontWeight) opt.markerFontWeight = 'normal';
 		if(!opt.markerIcon) opt.markerIcon = null;
 		if(!opt.onMarkerClick) opt.onMarkerClick = null;
 
@@ -54,6 +58,10 @@ const kGmapClusterer = function() {
 		GV.opt.clusterFontSize = opt.clusterFontSize || GV.opt.clusterFontSize;
 		GV.opt.clusterFontFamily = opt.clusterFontFamily || GV.opt.clusterFontFamily;
 		GV.opt.clusterFontWeight = opt.clusterFontWeight || GV.opt.clusterFontWeight;
+		GV.opt.markerFontColor = opt.markerFontColor || GV.opt.markerFontColor;
+		GV.opt.markerFontSize = opt.markerFontSize || GV.opt.markerFontSize;
+		GV.opt.markerFontFamily = opt.markerFontFamily || GV.opt.markerFontFamily;
+		GV.opt.markerFontWeight = opt.markerFontWeight || GV.opt.markerFontWeight;
 		GV.opt.markerIcon = opt.markerIcon || GV.opt.markerIcon;
 		GV.opt.onMarkerClick = opt.onMarkerClick || GV.opt.onMarkerClick;
 	}
@@ -196,6 +204,14 @@ const kGmapClusterer = function() {
 			map: GV.map,
 			icon: (typeof GV.opt.markerIcon == 'function' ? GV.opt.markerIcon(m) : GV.opt.markerIcon) || null,
 			position: { lat: m.y, lng: m.x }
+		});
+
+		if(m.d.label) marker.setLabel({
+			text: m.d.label,
+			color: GV.opt.markerFontColor,
+			fontSize: GV.opt.markerFontSize,
+			fontWeight: GV.opt.markerFontWeight,
+			fontFamily: GV.opt.markerFontFamily
 		});
 
 		if(GV.opt.onMarkerClick) marker.k_click_listener = marker.addListener('click', GV.opt.onMarkerClick);
