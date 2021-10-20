@@ -2,10 +2,7 @@
 
 const kGmapClusterer = function() {
 	const VERSION = '2.0.2',
-	GV = {},
-	fround = Math.fround || (tmp => ((x) => { tmp[0] = +x; return tmp[0]; }))(new Float32Array(1)),
-	defaultGetX = p => p[0],
-	defaultGetY = p => p[1];
+	GV = {};
 
 	/**
 	 * init kGmapClusterer
@@ -410,6 +407,8 @@ const kGmapClusterer = function() {
 		}
 	}
 
+	const fround = Math.fround || (tmp => ((x) => { tmp[0] = +x; return tmp[0]; }))(new Float32Array(1));
+
 	function createCluster(x, y, id, numPoints, d) {
 		return {
 			x: fround(x),
@@ -490,7 +489,7 @@ const kGmapClusterer = function() {
 	 ***********************************************************/
 
 	class KDBush {
-		constructor(points, getX = defaultGetX, getY = defaultGetY, nodeSize = 64, ArrayType = Float64Array) {
+		constructor(points, getX, getY, nodeSize, ArrayType) {
 			this.nodeSize = nodeSize;
 			this.points = points;
 
