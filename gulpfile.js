@@ -30,7 +30,6 @@ header_txt= `
 gulp.task('build', function() {
 	return gulp.src([
 			'src/kdbush.min.js',
-			'src/supercluster.js',
 			'src/k_gmap_clusterer.js'
 		])
 		.pipe(concat('k_gmap_clusterer.js'))

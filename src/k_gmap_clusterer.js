@@ -1,7 +1,7 @@
 'use strict';
 
 const kGmapClusterer = function() {
-	const VERSION = '2.0.1',
+	const VERSION = '2.0.2',
 	GV = {};
 
 	/**
@@ -13,12 +13,12 @@ const kGmapClusterer = function() {
 		console.log('kGmapClusterer.init()');
 
 		if(!opt) opt = {};
-		if(!opt.minZoom) opt.minZoom = 0;
-		if(!opt.maxZoom) opt.maxZoom = 16;
-		if(!opt.minPoints) opt.minPoints = 2;
-		if(!opt.radius) opt.radius = 256;
-		if(!opt.extent) opt.extent = 512;
-		if(!opt.nodeSize) opt.nodeSize = 64;
+		if(!opt.minZoom) opt.minZoom = 0; // min zoom to generate clusters on
+		if(!opt.maxZoom) opt.maxZoom = 16; // max zoom level to cluster the points on
+		if(!opt.minPoints) opt.minPoints = 2; // minimum points to form a cluster
+		if(!opt.radius) opt.radius = 256; // cluster radius in pixels
+		if(!opt.extent) opt.extent = 512; // tile extent (radius is calculated relative to it)
+		if(!opt.nodeSize) opt.nodeSize = 64; // size of the KD-tree leaf node, affects performance
 		if(!opt.clickToZoom) opt.clickToZoom = true;
 		if(!opt.clusterIcon) opt.clusterIcon = null;
 		if(!opt.clusterFontColor) opt.clusterFontColor = '#000';
@@ -35,14 +35,7 @@ const kGmapClusterer = function() {
 		GV.map = map;
 		GV.opt = opt;
 		GV.markers = new Map();
-		GV.supercluster = new Supercluster({
-			minZoom: opt.minZoom,
-			maxZoom: opt.maxZoom,
-			minPoints: opt.minPoints,
-			radius: opt.radius,
-			extent: opt.extent,
-			nodeSize: opt.nodeSize
-		});
+		GV.supercluster = new Supercluster();
 	}
 
 	/**
@@ -247,6 +240,254 @@ const kGmapClusterer = function() {
 		GV.markers.forEach(m => removeMarkerFromMap(m));
 		GV.markers.clear();
 	}
+
+
+	/*************************************************
+	 * CUSTOM SUPERCLUSTER (7.1.4)
+	 ************************************************/
+
+	class Supercluster {
+		constructor() {
+			this.trees = new Array(GV.opt.maxZoom + 1);
+		}
+
+		load(points) {
+			this.points = points;
+
+			let clusters = [];
+			points.forEach((p, i) => clusters.push(createPointCluster(p, i)));
+			this.trees[GV.opt.maxZoom + 1] = new KDBush(clusters, getX, getY, GV.opt.nodeSize, Float32Array);
+
+			for (let z = GV.opt.maxZoom; z >= GV.opt.minZoom; z--) {
+				clusters = this._cluster(clusters, z);
+				this.trees[z] = new KDBush(clusters, getX, getY, GV.opt.nodeSize, Float32Array);
+			}
+
+			return this;
+		}
+
+		getClusters(bbox, zoom) {
+			let minLng = ((bbox[0] + 180) % 360 + 360) % 360 - 180;
+			const minLat = Math.max(-90, Math.min(90, bbox[1]));
+			let maxLng = bbox[2] === 180 ? 180 : ((bbox[2] + 180) % 360 + 360) % 360 - 180;
+			const maxLat = Math.max(-90, Math.min(90, bbox[3]));
+
+			if (bbox[2] - bbox[0] >= 360) {
+				minLng = -180;
+				maxLng = 180;
+			} else if (minLng > maxLng) {
+				const easternHem = this.getClusters([minLng, minLat, 180, maxLat], zoom);
+				const westernHem = this.getClusters([-180, minLat, maxLng, maxLat], zoom);
+				return easternHem.concat(westernHem);
+			}
+
+			const tree = this.trees[this._limitZoom(zoom)];
+			const clusters = [];
+
+			tree.range(lngX(minLng), latY(maxLat), lngX(maxLng), latY(minLat)).forEach(id => {
+				const c = tree.points[id];
+				clusters.push(c.numPoints ? getClusterJSON(c) : this.points[c.index]);
+			});
+
+			return clusters;
+		}
+
+		getChildren(clusterId) {
+			const originId = this._getOriginId(clusterId);
+			const originZoom = this._getOriginZoom(clusterId);
+			const errorMsg = 'No cluster with the specified id.';
+
+			const index = this.trees[originZoom];
+			if (!index) throw new Error(errorMsg);
+
+			const origin = index.points[originId];
+			if (!origin) throw new Error(errorMsg);
+
+			const r = GV.opt.radius / (GV.opt.extent * Math.pow(2, originZoom - 1));
+			const children = [];
+
+			index.within(origin.x, origin.y, r).forEach(id => {
+				const c = index.points[id];
+				if(c.parentId === clusterId) children.push(c.numPoints ? getClusterJSON(c) : this.points[c.index]);
+			});
+
+			if (children.length === 0) throw new Error(errorMsg);
+
+			return children;
+		}
+
+		getClusterExpansionZoom(clusterId) {
+			let expansionZoom = this._getOriginZoom(clusterId) - 1;
+
+			while (expansionZoom <= GV.opt.maxZoom) {
+				const children = this.getChildren(clusterId);
+				expansionZoom++;
+				if (children.length !== 1) break;
+				clusterId = children[0].d.cluster_id;
+			}
+
+			return expansionZoom;
+		}
+
+		_limitZoom(z) {
+			return Math.max(GV.opt.minZoom, Math.min(+z, GV.opt.maxZoom + 1));
+		}
+
+		_cluster(points, zoom) {
+			const clusters = [];
+			const r = GV.opt.radius / (GV.opt.extent * Math.pow(2, zoom));
+
+			points.forEach((p,i) => {
+				if (p.zoom <= zoom) return;
+				p.zoom = zoom;
+
+				const tree = this.trees[zoom + 1];
+				const neighborIds = tree.within(p.x, p.y, r);
+
+				const numPointsOrigin = p.numPoints || 1;
+				let numPoints = numPointsOrigin;
+
+				neighborIds.forEach(neighborId => {
+					const b = tree.points[neighborId];
+					if (b.zoom > zoom) numPoints += b.numPoints || 1;
+				});
+
+				if (numPoints > numPointsOrigin && numPoints >= GV.opt.minPoints) {
+					let wx = p.x * numPointsOrigin;
+					let wy = p.y * numPointsOrigin;
+
+					let clusterProperties = numPointsOrigin > 1 ? this._map(p, true) : null;
+
+					const id = (i << 5) + (zoom + 1) + this.points.length;
+
+					neighborIds.forEach(neighborId => {
+						const b = tree.points[neighborId];
+
+						if (b.zoom <= zoom) return;
+						b.zoom = zoom;
+
+						const numPoints2 = b.numPoints || 1;
+						wx += b.x * numPoints2;
+						wy += b.y * numPoints2;
+
+						b.parentId = id;
+					});
+
+					p.parentId = id;
+					clusters.push(createCluster(wx / numPoints, wy / numPoints, id, numPoints, clusterProperties));
+				} else {
+					clusters.push(p);
+
+					if (numPoints > 1) {
+						neighborIds.forEach(neighborId => {
+							const b = tree.points[neighborId];
+							if (b.zoom <= zoom) return;
+							b.zoom = zoom;
+							clusters.push(b);
+						});
+					}
+				}
+			});
+
+			return clusters;
+		}
+
+		_getOriginId(clusterId) {
+			return (clusterId - this.points.length) >> 5;
+		}
+
+		_getOriginZoom(clusterId) {
+			return (clusterId - this.points.length) % 32;
+		}
+
+		_map(point, clone) {
+			if(point.numPoints) return clone ? extend({}, point.d) : point.d;
+
+			const result = this.points[point.index].d;
+			return clone ? extend({}, result) : result;
+		}
+	}
+
+	const fround = Math.fround || (tmp => ((x) => { tmp[0] = +x; return tmp[0]; }))(new Float32Array(1));
+
+	function createCluster(x, y, id, numPoints, d) {
+		return {
+			x: fround(x),
+			y: fround(y),
+			zoom: Infinity,
+			id,
+			parentId: -1,
+			numPoints,
+			d
+		};
+	}
+
+	function createPointCluster(p, id) {
+		return {
+			x: fround(lngX(p.x)),
+			y: fround(latY(p.y)),
+			zoom: Infinity,
+			index: id,
+			parentId: -1
+		};
+	}
+
+	function getClusterJSON(cluster) {
+		return {
+			x: xLng(cluster.x),
+			y: yLat(cluster.y),
+			d: getClusterProperties(cluster)
+		};
+	}
+
+	function getClusterProperties(cluster) {
+		const count = cluster.numPoints;
+		const abbrev =
+			count >= 10000 ? `${Math.round(count / 1000)  }k` :
+			count >= 1000 ? `${Math.round(count / 100) / 10  }k` : count;
+
+		return extend(extend({}, cluster.d), {
+			cluster_id: cluster.id,
+			nb_points: count,
+			nb_points_abbr: abbrev
+		});
+	}
+
+	function lngX(lng) {
+		return lng / 360 + 0.5;
+	}
+
+	function latY(lat) {
+		const sin = Math.sin(lat * Math.PI / 180);
+		const y = (0.5 - 0.25 * Math.log((1 + sin) / (1 - sin)) / Math.PI);
+		return y < 0 ? 0 : y > 1 ? 1 : y;
+	}
+
+	function xLng(x) {
+		return (x - 0.5) * 360;
+	}
+
+	function yLat(y) {
+		const y2 = (180 - y * 360) * Math.PI / 180;
+		return 360 * Math.atan(Math.exp(y2)) / Math.PI - 90;
+	}
+
+	function extend(dest, src) {
+		for(const id in src) dest[id] = src[id];
+		return dest;
+	}
+
+	function getX(p) {
+		return p.x;
+	}
+
+	function getY(p) {
+		return p.y;
+	}
+
+	/*************************************************
+	 * PUBLIC METHODS
+	 ************************************************/
 
 	return {
 		VERSION,
