@@ -1,7 +1,6 @@
 const gulp = require('gulp'),
 fs = require('fs'),
 rename = require('gulp-rename'),
-concat = require('gulp-concat'),
 terser = require('gulp-terser'),
 header_comment = require('gulp-header-comment');
 
@@ -28,11 +27,7 @@ header_txt= `
 `;
 
 gulp.task('build', function() {
-	return gulp.src([
-			'src/kdbush.min.js',
-			'src/k_gmap_clusterer.js'
-		])
-		.pipe(concat('k_gmap_clusterer.js'))
+	return gulp.src('src/k_gmap_clusterer.js')
 		.pipe(header_comment(header_txt))
 		.pipe(gulp.dest('dist'))
 		.pipe(terser(terser_options))

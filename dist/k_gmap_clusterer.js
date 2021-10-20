@@ -1,16 +1,17 @@
 /**
- * kGmapClusterer v2.0.2 (2021-10-20 20:38:44 +0200)
+ * kGmapClusterer v2.0.2 (2021-10-20 21:58:40 +0200)
  * Copyright (c) 2021 Florent VIALATTE
  * Released under the MIT license
  */
-
-!function(t,o){"object"==typeof exports&&"undefined"!=typeof module?module.exports=o():"function"==typeof define&&define.amd?define(o):t.KDBush=o()}(this,function(){"use strict";function t(n,r,i,e,h,u){if(!(h-e<=i)){var s=e+h>>1;!function t(n,r,i,e,h,u){for(;h>e;){if(h-e>600){var s=h-e+1,f=i-e+1,p=Math.log(s),a=.5*Math.exp(2*p/3),d=.5*Math.sqrt(p*a*(s-a)/s)*(f-s/2<0?-1:1),v=Math.max(e,Math.floor(i-f*a/s+d)),c=Math.min(h,Math.floor(i+(s-f)*a/s+d));t(n,r,i,v,c,u)}var l=r[2*i+u],g=e,M=h;for(o(n,r,e,i),r[2*h+u]>l&&o(n,r,e,h);g<M;){for(o(n,r,g,M),g++,M--;r[2*g+u]<l;)g++;for(;r[2*M+u]>l;)M--}r[2*e+u]===l?o(n,r,e,M):o(n,r,++M,h),M<=i&&(e=M+1),i<=M&&(h=M-1)}}(n,r,s,e,h,u%2),t(n,r,i,e,s-1,u+1),t(n,r,i,s+1,h,u+1)}}function o(t,o,r,i){n(t,r,i),n(o,2*r,2*i),n(o,2*r+1,2*i+1)}function n(t,o,n){var r=t[o];t[o]=t[n],t[n]=r}function r(t,o,n,r){var i=t-n,e=o-r;return i*i+e*e}var i=function(t){return t[0]},e=function(t){return t[1]},h=function(o,n,r,h,u){void 0===n&&(n=i),void 0===r&&(r=e),void 0===h&&(h=64),void 0===u&&(u=Float64Array),this.nodeSize=h,this.points=o;for(var s=o.length<65536?Uint16Array:Uint32Array,f=this.ids=new s(o.length),p=this.coords=new u(2*o.length),a=0;a<o.length;a++)f[a]=a,p[2*a]=n(o[a]),p[2*a+1]=r(o[a]);t(f,p,h,0,f.length-1,0)};return h.prototype.range=function(t,o,n,r){return function(t,o,n,r,i,e,h){for(var u,s,f=[0,t.length-1,0],p=[];f.length;){var a=f.pop(),d=f.pop(),v=f.pop();if(d-v<=h)for(var c=v;c<=d;c++)u=o[2*c],s=o[2*c+1],u>=n&&u<=i&&s>=r&&s<=e&&p.push(t[c]);else{var l=Math.floor((v+d)/2);u=o[2*l],s=o[2*l+1],u>=n&&u<=i&&s>=r&&s<=e&&p.push(t[l]);var g=(a+1)%2;(0===a?n<=u:r<=s)&&(f.push(v),f.push(l-1),f.push(g)),(0===a?i>=u:e>=s)&&(f.push(l+1),f.push(d),f.push(g))}}return p}(this.ids,this.coords,t,o,n,r,this.nodeSize)},h.prototype.within=function(t,o,n){return function(t,o,n,i,e,h){for(var u=[0,t.length-1,0],s=[],f=e*e;u.length;){var p=u.pop(),a=u.pop(),d=u.pop();if(a-d<=h)for(var v=d;v<=a;v++)r(o[2*v],o[2*v+1],n,i)<=f&&s.push(t[v]);else{var c=Math.floor((d+a)/2),l=o[2*c],g=o[2*c+1];r(l,g,n,i)<=f&&s.push(t[c]);var M=(p+1)%2;(0===p?n-e<=l:i-e<=g)&&(u.push(d),u.push(c-1),u.push(M)),(0===p?n+e>=l:i+e>=g)&&(u.push(c+1),u.push(a),u.push(M))}}return s}(this.ids,this.coords,t,o,n,this.nodeSize)},h});
 
 'use strict';
 
 const kGmapClusterer = function() {
 	const VERSION = '2.0.2',
-	GV = {};
+	GV = {},
+	fround = Math.fround || (tmp => ((x) => { tmp[0] = +x; return tmp[0]; }))(new Float32Array(1)),
+	defaultGetX = p => p[0],
+	defaultGetY = p => p[1];
 
 	/**
 	 * init kGmapClusterer
@@ -249,10 +250,9 @@ const kGmapClusterer = function() {
 		GV.markers.clear();
 	}
 
-
-	/*************************************************
-	 * CUSTOM SUPERCLUSTER (7.1.4)
-	 ************************************************/
+	/************************************************************
+	 * Custom version of github.com/mapbox/supercluster v7.1.4
+	 ***********************************************************/
 
 	class Supercluster {
 		constructor() {
@@ -416,8 +416,6 @@ const kGmapClusterer = function() {
 		}
 	}
 
-	const fround = Math.fround || (tmp => ((x) => { tmp[0] = +x; return tmp[0]; }))(new Float32Array(1));
-
 	function createCluster(x, y, id, numPoints, d) {
 		return {
 			x: fround(x),
@@ -491,6 +489,190 @@ const kGmapClusterer = function() {
 
 	function getY(p) {
 		return p.y;
+	}
+
+	/************************************************************
+	 * github.com/mourner/kdbush v3.0.0
+	 ***********************************************************/
+
+	class KDBush {
+		constructor(points, getX = defaultGetX, getY = defaultGetY, nodeSize = 64, ArrayType = Float64Array) {
+			this.nodeSize = nodeSize;
+			this.points = points;
+
+			const IndexArrayType = points.length < 65536 ? Uint16Array : Uint32Array;
+
+			const ids = this.ids = new IndexArrayType(points.length);
+			const coords = this.coords = new ArrayType(points.length * 2);
+
+			for (let i = 0; i < points.length; i++) {
+				ids[i] = i;
+				coords[2 * i] = getX(points[i]);
+				coords[2 * i + 1] = getY(points[i]);
+			}
+
+			sortKD(ids, coords, nodeSize, 0, ids.length - 1, 0);
+		}
+
+		range(minX, minY, maxX, maxY) {
+			return rangeKD(this.ids, this.coords, minX, minY, maxX, maxY, this.nodeSize);
+		}
+
+		within(x, y, r) {
+			return withinKD(this.ids, this.coords, x, y, r, this.nodeSize);
+		}
+	}
+
+	function rangeKD(ids, coords, minX, minY, maxX, maxY, nodeSize) {
+		const stack = [0, ids.length - 1, 0];
+		const result = [];
+		let x, y;
+
+		while (stack.length) {
+			const axis = stack.pop();
+			const right = stack.pop();
+			const left = stack.pop();
+
+			if (right - left <= nodeSize) {
+				for (let i = left; i <= right; i++) {
+					x = coords[2 * i];
+					y = coords[2 * i + 1];
+					if (x >= minX && x <= maxX && y >= minY && y <= maxY) result.push(ids[i]);
+				}
+				continue;
+			}
+
+			const m = Math.floor((left + right) / 2);
+
+			x = coords[2 * m];
+			y = coords[2 * m + 1];
+
+			if (x >= minX && x <= maxX && y >= minY && y <= maxY) result.push(ids[m]);
+
+			const nextAxis = (axis + 1) % 2;
+
+			if (axis === 0 ? minX <= x : minY <= y) {
+				stack.push(left);
+				stack.push(m - 1);
+				stack.push(nextAxis);
+			}
+			if (axis === 0 ? maxX >= x : maxY >= y) {
+				stack.push(m + 1);
+				stack.push(right);
+				stack.push(nextAxis);
+			}
+		}
+
+		return result;
+	}
+
+	function sortKD(ids, coords, nodeSize, left, right, depth) {
+		if (right - left <= nodeSize) return;
+
+		const m = (left + right) >> 1;
+
+		select(ids, coords, m, left, right, depth % 2);
+
+		sortKD(ids, coords, nodeSize, left, m - 1, depth + 1);
+		sortKD(ids, coords, nodeSize, m + 1, right, depth + 1);
+	}
+
+	function select(ids, coords, k, left, right, inc) {
+		while (right > left) {
+			if (right - left > 600) {
+				const n = right - left + 1;
+				const m = k - left + 1;
+				const z = Math.log(n);
+				const s = 0.5 * Math.exp(2 * z / 3);
+				const sd = 0.5 * Math.sqrt(z * s * (n - s) / n) * (m - n / 2 < 0 ? -1 : 1);
+				const newLeft = Math.max(left, Math.floor(k - m * s / n + sd));
+				const newRight = Math.min(right, Math.floor(k + (n - m) * s / n + sd));
+				select(ids, coords, k, newLeft, newRight, inc);
+			}
+
+			const t = coords[2 * k + inc];
+			let i = left;
+			let j = right;
+
+			swapItem(ids, coords, left, k);
+			if (coords[2 * right + inc] > t) swapItem(ids, coords, left, right);
+
+			while (i < j) {
+				swapItem(ids, coords, i, j);
+				i++;
+				j--;
+				while (coords[2 * i + inc] < t) i++;
+				while (coords[2 * j + inc] > t) j--;
+			}
+
+			if (coords[2 * left + inc] === t) swapItem(ids, coords, left, j);
+			else {
+				j++;
+				swapItem(ids, coords, j, right);
+			}
+
+			if (j <= k) left = j + 1;
+			if (k <= j) right = j - 1;
+		}
+	}
+
+	function swapItem(ids, coords, i, j) {
+		swap(ids, i, j);
+		swap(coords, 2 * i, 2 * j);
+		swap(coords, 2 * i + 1, 2 * j + 1);
+	}
+
+	function swap(arr, i, j) {
+		const tmp = arr[i];
+		arr[i] = arr[j];
+		arr[j] = tmp;
+	}
+
+	function withinKD(ids, coords, qx, qy, r, nodeSize) {
+		const stack = [0, ids.length - 1, 0];
+		const result = [];
+		const r2 = r * r;
+
+		while (stack.length) {
+			const axis = stack.pop();
+			const right = stack.pop();
+			const left = stack.pop();
+
+			if (right - left <= nodeSize) {
+				for (let i = left; i <= right; i++) {
+					if (sqDist(coords[2 * i], coords[2 * i + 1], qx, qy) <= r2) result.push(ids[i]);
+				}
+				continue;
+			}
+
+			const m = Math.floor((left + right) / 2);
+
+			const x = coords[2 * m];
+			const y = coords[2 * m + 1];
+
+			if (sqDist(x, y, qx, qy) <= r2) result.push(ids[m]);
+
+			const nextAxis = (axis + 1) % 2;
+
+			if (axis === 0 ? qx - r <= x : qy - r <= y) {
+				stack.push(left);
+				stack.push(m - 1);
+				stack.push(nextAxis);
+			}
+			if (axis === 0 ? qx + r >= x : qy + r >= y) {
+				stack.push(m + 1);
+				stack.push(right);
+				stack.push(nextAxis);
+			}
+		}
+
+		return result;
+	}
+
+	function sqDist(ax, ay, bx, by) {
+		const dx = ax - bx;
+		const dy = ay - by;
+		return dx * dx + dy * dy;
 	}
 
 	/*************************************************
