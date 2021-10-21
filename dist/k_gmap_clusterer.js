@@ -1,5 +1,5 @@
 /**
- * kGmapClusterer v2.0.4 (2021-10-21 18:34:30 +0200)
+ * kGmapClusterer v2.0.4 (2021-10-21 19:31:42 +0200)
  * Copyright (c) 2021 Florent VIALATTE
  * Released under the MIT license
  */
@@ -459,11 +459,6 @@ const kGmapClusterer = function() {
 	function yLat(y) {
 		const y2 = (180 - y * 360) * Math.PI / 180;
 		return 360 * Math.atan(Math.exp(y2)) / Math.PI - 90;
-	}
-
-	function extend(dest, src) {
-		for(const id in src) dest[id] = src[id];
-		return dest;
 	}
 
 	/************************************************************

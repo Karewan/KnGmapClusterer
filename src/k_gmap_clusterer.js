@@ -455,11 +455,6 @@ const kGmapClusterer = function() {
 		return 360 * Math.atan(Math.exp(y2)) / Math.PI - 90;
 	}
 
-	function extend(dest, src) {
-		for(const id in src) dest[id] = src[id];
-		return dest;
-	}
-
 	/************************************************************
 	 * Custom version of github.com/mourner/kdbush v3.0.0
 	 ***********************************************************/
