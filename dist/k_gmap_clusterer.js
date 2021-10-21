@@ -1,5 +1,5 @@
 /**
- * kGmapClusterer v2.0.2 (2021-10-20 23:02:03 +0200)
+ * kGmapClusterer v2.0.3 (2021-10-21 10:23:58 +0200)
  * Copyright (c) 2021 Florent VIALATTE
  * Released under the MIT license
  */
@@ -7,7 +7,7 @@
 'use strict';
 
 const kGmapClusterer = function() {
-	const VERSION = '2.0.2',
+	const VERSION = '2.0.3',
 	GV = {};
 
 	/**
@@ -261,11 +261,11 @@ const kGmapClusterer = function() {
 
 			let clusters = [];
 			points.forEach((p, i) => clusters.push(createPointCluster(p, i)));
-			this.trees[GV.opt.maxZoom + 1] = new KDBush(clusters, getX, getY, GV.opt.nodeSize, Float32Array);
+			this.trees[GV.opt.maxZoom + 1] = new KDBush(clusters);
 
 			for (let z = GV.opt.maxZoom; z >= GV.opt.minZoom; z--) {
 				clusters = this._cluster(clusters, z);
-				this.trees[z] = new KDBush(clusters, getX, getY, GV.opt.nodeSize, Float32Array);
+				this.trees[z] = new KDBush(clusters);
 			}
 
 			return this;
@@ -482,47 +482,38 @@ const kGmapClusterer = function() {
 		return dest;
 	}
 
-	function getX(p) {
-		return p.x;
-	}
-
-	function getY(p) {
-		return p.y;
-	}
-
 	/************************************************************
-	 * github.com/mourner/kdbush v3.0.0
+	 * Custom version of github.com/mourner/kdbush v3.0.0
 	 ***********************************************************/
 
 	class KDBush {
-		constructor(points, getX, getY, nodeSize, ArrayType) {
-			this.nodeSize = nodeSize;
+		constructor(points) {
 			this.points = points;
 
 			const IndexArrayType = points.length < 65536 ? Uint16Array : Uint32Array;
 
 			const ids = this.ids = new IndexArrayType(points.length);
-			const coords = this.coords = new ArrayType(points.length * 2);
+			const coords = this.coords = new Float32Array(points.length * 2);
 
 			for (let i = 0; i < points.length; i++) {
 				ids[i] = i;
-				coords[2 * i] = getX(points[i]);
-				coords[2 * i + 1] = getY(points[i]);
+				coords[2 * i] = points[i].x;
+				coords[2 * i + 1] = points[i].y;
 			}
 
-			sortKD(ids, coords, nodeSize, 0, ids.length - 1, 0);
+			sortKD(ids, coords, 0, ids.length - 1, 0);
 		}
 
 		range(minX, minY, maxX, maxY) {
-			return rangeKD(this.ids, this.coords, minX, minY, maxX, maxY, this.nodeSize);
+			return rangeKD(this.ids, this.coords, minX, minY, maxX, maxY);
 		}
 
 		within(x, y, r) {
-			return withinKD(this.ids, this.coords, x, y, r, this.nodeSize);
+			return withinKD(this.ids, this.coords, x, y, r);
 		}
 	}
 
-	function rangeKD(ids, coords, minX, minY, maxX, maxY, nodeSize) {
+	function rangeKD(ids, coords, minX, minY, maxX, maxY) {
 		const stack = [0, ids.length - 1, 0];
 		const result = [];
 		let x, y;
@@ -532,7 +523,7 @@ const kGmapClusterer = function() {
 			const right = stack.pop();
 			const left = stack.pop();
 
-			if (right - left <= nodeSize) {
+			if (right - left <= GV.opt.nodeSize) {
 				for (let i = left; i <= right; i++) {
 					x = coords[2 * i];
 					y = coords[2 * i + 1];
@@ -565,15 +556,15 @@ const kGmapClusterer = function() {
 		return result;
 	}
 
-	function sortKD(ids, coords, nodeSize, left, right, depth) {
-		if (right - left <= nodeSize) return;
+	function sortKD(ids, coords, left, right, depth) {
+		if (right - left <= GV.opt.nodeSize) return;
 
 		const m = (left + right) >> 1;
 
 		select(ids, coords, m, left, right, depth % 2);
 
-		sortKD(ids, coords, nodeSize, left, m - 1, depth + 1);
-		sortKD(ids, coords, nodeSize, m + 1, right, depth + 1);
+		sortKD(ids, coords, left, m - 1, depth + 1);
+		sortKD(ids, coords, m + 1, right, depth + 1);
 	}
 
 	function select(ids, coords, k, left, right, inc) {
@@ -627,7 +618,7 @@ const kGmapClusterer = function() {
 		arr[j] = tmp;
 	}
 
-	function withinKD(ids, coords, qx, qy, r, nodeSize) {
+	function withinKD(ids, coords, qx, qy, r) {
 		const stack = [0, ids.length - 1, 0];
 		const result = [];
 		const r2 = r * r;
@@ -637,7 +628,7 @@ const kGmapClusterer = function() {
 			const right = stack.pop();
 			const left = stack.pop();
 
-			if (right - left <= nodeSize) {
+			if (right - left <= GV.opt.nodeSize) {
 				for (let i = left; i <= right; i++) {
 					if (sqDist(coords[2 * i], coords[2 * i + 1], qx, qy) <= r2) result.push(ids[i]);
 				}
