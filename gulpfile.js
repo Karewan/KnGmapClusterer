@@ -21,17 +21,17 @@ const terser_options = {
 	}
 },
 header_txt= `
-	kGmapClusterer v<%= pkg.version %> (<%= moment().format('YYYY-MM-DD HH:mm:ss ZZ') %>)
+	KnGmapClusterer v<%= pkg.version %> (<%= moment().format('YYYY-MM-DD HH:mm:ss ZZ') %>)
 	Copyright (c) 2021 <%= pkg.author %>
 	Released under the MIT license
 `;
 
 gulp.task('build', function() {
-	return gulp.src('src/k_gmap_clusterer.js')
+	return gulp.src('src/kn_gmap_clusterer.js')
 		.pipe(header_comment(header_txt))
 		.pipe(gulp.dest('dist'))
 		.pipe(terser(terser_options))
 		.pipe(header_comment(header_txt))
-		.pipe(rename('k_gmap_clusterer.min.js'))
+		.pipe(rename('kn_gmap_clusterer.min.js'))
 		.pipe(gulp.dest('dist'));
 });

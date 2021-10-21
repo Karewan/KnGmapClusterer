@@ -1,16 +1,16 @@
 'use strict';
 
-const kGmapClusterer = function() {
-	const VERSION = '2.0.4',
+const KnGmapClusterer = function() {
+	const VERSION = '2.0.5',
 	GV = {};
 
 	/**
-	 * init kGmapClusterer
+	 * init KnGmapClusterer
 	 * @param map
 	 * @param opt
 	 */
 	function init(map, opt) {
-		console.log('kGmapClusterer.init()');
+		console.log('KnGmapClusterer.init()');
 
 		if(!opt) opt = {};
 		if(!opt.minZoom) opt.minZoom = 0; // min zoom to generate clusters on
@@ -35,7 +35,7 @@ const kGmapClusterer = function() {
 		GV.map = map;
 		GV.opt = opt;
 		GV.markers = new Map();
-		GV.supercluster = new Supercluster();
+		GV.kcluster = new kCluster();
 	}
 
 	/**
@@ -43,7 +43,7 @@ const kGmapClusterer = function() {
 	 * @param opt
 	 */
 	function setOptions(opt) {
-		console.log('kGmapClusterer.setOptions()', opt);
+		console.log('KnGmapClusterer.setOptions()', opt);
 
 		GV.opt.clickToZoom = opt.clickToZoom || GV.opt.clickToZoom;
 		GV.opt.clusterIcon = opt.clusterIcon || GV.opt.clusterIcon;
@@ -63,7 +63,7 @@ const kGmapClusterer = function() {
 	 * add idle listener
 	 */
 	function addIdleListener() {
-		console.log('kGmapClusterer.addIdleListener()');
+		console.log('KnGmapClusterer.addIdleListener()');
 		GV.idle_listener = GV.map.addListener('idle', onMapIdle);
 	}
 
@@ -71,7 +71,7 @@ const kGmapClusterer = function() {
 	 * on map idle
 	 */
 	function onMapIdle() {
-		console.log('kGmapClusterer.onMapIdle()');
+		console.log('KnGmapClusterer.onMapIdle()');
 		drawClusters(GV.map.getBounds(), GV.map.getZoom());
 	}
 
@@ -79,7 +79,7 @@ const kGmapClusterer = function() {
 	 * remove idle listener
 	 */
 	function removeIdleListener() {
-		console.log('kGmapClusterer.removeIdleListener()');
+		console.log('KnGmapClusterer.removeIdleListener()');
 		if(!GV.idle_listener) return;
 		GV.idle_listener.remove();
 		GV.idle_listener = null;
@@ -90,13 +90,13 @@ const kGmapClusterer = function() {
 	 * @param points
 	 */
 	function load(points) {
-		console.log('kGmapClusterer.load()');
+		console.log('KnGmapClusterer.load()');
 
 		// Clear markers
 		clearMarkers();
 
 		// Load point into supercluster
-		GV.supercluster.load(points);
+		GV.kcluster.load(points);
 
 		// Fit map to bounds
 		const bounds = new google.maps.LatLngBounds();
@@ -113,17 +113,17 @@ const kGmapClusterer = function() {
 	 * @param zoom
 	 */
 	function drawClusters(bounds, zoom) {
-		console.log('kGmapClusterer.drawClusters()', bounds, zoom);
+		console.log('KnGmapClusterer.drawClusters()', bounds, zoom);
 
 		const old_markers = new Map(GV.markers);
 		GV.markers.clear();
 
-		GV.supercluster.getClusters([bounds.getSouthWest().lng(), bounds.getSouthWest().lat(), bounds.getNorthEast().lng(), bounds.getNorthEast().lat()], zoom).forEach(c => {
-			console.log("kGmapClusterer.drawClusters()", c);
+		GV.kcluster.getClusters([bounds.getSouthWest().lng(), bounds.getSouthWest().lat(), bounds.getNorthEast().lng(), bounds.getNorthEast().lat()], zoom).forEach(c => {
+			console.log("KnGmapClusterer.drawClusters()", c);
 
 			if(c.cluster_id) {
 				if(old_markers.has('c' + c.cluster_id)) {
-					console.log('kGmapClusterer.drawClusters() cluster already on map');
+					console.log('KnGmapClusterer.drawClusters() cluster already on map');
 					GV.markers.set('c' + c.cluster_id, old_markers.get('c' + c.cluster_id));
 					old_markers.delete('c' + c.cluster_id);
 					return;
@@ -132,7 +132,7 @@ const kGmapClusterer = function() {
 				addClusterToMap(c);
 			} else {
 				if(old_markers.has('m' + c.id)) {
-					console.log('kGmapClusterer.drawClusters() marker already on map');
+					console.log('KnGmapClusterer.drawClusters() marker already on map');
 					GV.markers.set('m' + c.id, old_markers.get('m' + c.id));
 					old_markers.delete('m' + c.id);
 					return;
@@ -150,7 +150,7 @@ const kGmapClusterer = function() {
 	 * @param c
 	 */
 	function addClusterToMap(c) {
-		console.log('kGmapClusterer.addClusterToMap()', c);
+		console.log('KnGmapClusterer.addClusterToMap()', c);
 
 		const marker = new google.maps.Marker({
 			k_data: c,
@@ -177,11 +177,11 @@ const kGmapClusterer = function() {
 	 * @param e
 	 */
 	function onClusterClick(e) {
-		console.log('kGmapClusterer.onClusterClick()', e);
+		console.log('KnGmapClusterer.onClusterClick()', e);
 		e.stop();
 		GV.map.setOptions({
 			center: this.getPosition(),
-			zoom: GV.supercluster.getClusterExpansionZoom(this.k_data.cluster_id)
+			zoom: GV.kcluster.getClusterExpansionZoom(this.k_data.cluster_id)
 		});
 	}
 
@@ -190,7 +190,7 @@ const kGmapClusterer = function() {
 	 * @param m
 	 */
 	function addMarkerToMap(m) {
-		console.log('kGmapClusterer.addMarkerToMap()', m);
+		console.log('KnGmapClusterer.addMarkerToMap()', m);
 
 		const marker = new google.maps.Marker({
 			k_data: m,
@@ -217,7 +217,7 @@ const kGmapClusterer = function() {
 	 * @return array
 	 */
 	function getMarkers() {
-		console.log('kGmapClusterer.getMarkers()');
+		console.log('KnGmapClusterer.getMarkers()');
 		return GV.markers;
 	}
 
@@ -226,7 +226,7 @@ const kGmapClusterer = function() {
 	 * @param m
 	 */
 	function removeMarkerFromMap(m) {
-		console.log('kGmapClusterer.removeMarkerFromMap()', m);
+		console.log('KnGmapClusterer.removeMarkerFromMap()', m);
 		if(m.k_click_listener) m.k_click_listener.remove();
 		m.setMap(null);
 	}
@@ -235,7 +235,7 @@ const kGmapClusterer = function() {
 	 * clear markers
 	 */
 	function clearMarkers() {
-		console.log('kGmapClusterer.clearMarkers()');
+		console.log('KnGmapClusterer.clearMarkers()');
 		removeIdleListener();
 		GV.markers.forEach(m => removeMarkerFromMap(m));
 		GV.markers.clear();
@@ -245,7 +245,7 @@ const kGmapClusterer = function() {
 	 * Custom version of github.com/mapbox/supercluster v7.1.4
 	 ***********************************************************/
 
-	class Supercluster {
+	class kCluster {
 		constructor() {
 			this.trees = new Array(GV.opt.maxZoom + 1);
 		}
