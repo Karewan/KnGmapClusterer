@@ -1,5 +1,5 @@
 /**
- * kGmapClusterer v2.0.3 (2021-10-21 10:23:58 +0200)
+ * kGmapClusterer v2.0.4 (2021-10-21 18:34:30 +0200)
  * Copyright (c) 2021 Florent VIALATTE
  * Released under the MIT license
  */
@@ -7,7 +7,7 @@
 'use strict';
 
 const kGmapClusterer = function() {
-	const VERSION = '2.0.3',
+	const VERSION = '2.0.4',
 	GV = {};
 
 	/**
@@ -127,20 +127,20 @@ const kGmapClusterer = function() {
 		GV.supercluster.getClusters([bounds.getSouthWest().lng(), bounds.getSouthWest().lat(), bounds.getNorthEast().lng(), bounds.getNorthEast().lat()], zoom).forEach(c => {
 			console.log("kGmapClusterer.drawClusters()", c);
 
-			if(c.d.cluster_id) {
-				if(old_markers.has('c' + c.d.cluster_id)) {
+			if(c.cluster_id) {
+				if(old_markers.has('c' + c.cluster_id)) {
 					console.log('kGmapClusterer.drawClusters() cluster already on map');
-					GV.markers.set('c' + c.d.cluster_id, old_markers.get('c' + c.d.cluster_id));
-					old_markers.delete('c' + c.d.cluster_id);
+					GV.markers.set('c' + c.cluster_id, old_markers.get('c' + c.cluster_id));
+					old_markers.delete('c' + c.cluster_id);
 					return;
 				}
 
 				addClusterToMap(c);
 			} else {
-				if(old_markers.has('m' + c.d.id)) {
+				if(old_markers.has('m' + c.id)) {
 					console.log('kGmapClusterer.drawClusters() marker already on map');
-					GV.markers.set('m' + c.d.id, old_markers.get('m' + c.d.id));
-					old_markers.delete('m' + c.d.id);
+					GV.markers.set('m' + c.id, old_markers.get('m' + c.id));
+					old_markers.delete('m' + c.id);
 					return;
 				}
 
@@ -159,13 +159,13 @@ const kGmapClusterer = function() {
 		console.log('kGmapClusterer.addClusterToMap()', c);
 
 		const marker = new google.maps.Marker({
-			k_data: c.d,
+			k_data: c,
 			map: GV.map,
 			icon: (typeof GV.opt.clusterIcon == 'function' ? GV.opt.clusterIcon(c) : GV.opt.clusterIcon) || null,
-			zIndex: Number(google.maps.Marker.MAX_ZINDEX) + c.d.nb_points,
+			zIndex: Number(google.maps.Marker.MAX_ZINDEX) + c.nb_points,
 			position: { lat: c.y, lng: c.x },
 			label: {
-				text: String(c.d.nb_points_abbr),
+				text: String(c.nb_points_abbr),
 				color: GV.opt.clusterFontColor,
 				fontSize: GV.opt.clusterFontSize,
 				fontWeight: GV.opt.clusterFontWeight,
@@ -175,7 +175,7 @@ const kGmapClusterer = function() {
 
 		if(GV.opt.clickToZoom) marker.k_click_listener = marker.addListener('click', onClusterClick);
 
-		GV.markers.set('c' + c.d.cluster_id, marker);
+		GV.markers.set('c' + c.cluster_id, marker);
 	}
 
 	/**
@@ -199,14 +199,14 @@ const kGmapClusterer = function() {
 		console.log('kGmapClusterer.addMarkerToMap()', m);
 
 		const marker = new google.maps.Marker({
-			k_data: m.d,
+			k_data: m,
 			map: GV.map,
 			icon: (typeof GV.opt.markerIcon == 'function' ? GV.opt.markerIcon(m) : GV.opt.markerIcon) || null,
 			position: { lat: m.y, lng: m.x }
 		});
 
-		if(m.d.label) marker.setLabel({
-			text: m.d.label,
+		if(m.label) marker.setLabel({
+			text: m.label,
 			color: GV.opt.markerFontColor,
 			fontSize: GV.opt.markerFontSize,
 			fontWeight: GV.opt.markerFontWeight,
@@ -215,7 +215,7 @@ const kGmapClusterer = function() {
 
 		if(GV.opt.onMarkerClick) marker.k_click_listener = marker.addListener('click', GV.opt.onMarkerClick);
 
-		GV.markers.set('m' + m.d.id, marker);
+		GV.markers.set('m' + m.id, marker);
 	}
 
 	/**
@@ -328,7 +328,7 @@ const kGmapClusterer = function() {
 				const children = this.getChildren(clusterId);
 				expansionZoom++;
 				if (children.length !== 1) break;
-				clusterId = children[0].d.cluster_id;
+				clusterId = children[0].cluster_id;
 			}
 
 			return expansionZoom;
@@ -361,8 +361,6 @@ const kGmapClusterer = function() {
 					let wx = p.x * numPointsOrigin;
 					let wy = p.y * numPointsOrigin;
 
-					let clusterProperties = numPointsOrigin > 1 ? this._map(p, true) : null;
-
 					const id = (i << 5) + (zoom + 1) + this.points.length;
 
 					neighborIds.forEach(neighborId => {
@@ -379,7 +377,7 @@ const kGmapClusterer = function() {
 					});
 
 					p.parentId = id;
-					clusters.push(createCluster(wx / numPoints, wy / numPoints, id, numPoints, clusterProperties));
+					clusters.push(createCluster(wx / numPoints, wy / numPoints, id, numPoints));
 				} else {
 					clusters.push(p);
 
@@ -404,26 +402,18 @@ const kGmapClusterer = function() {
 		_getOriginZoom(clusterId) {
 			return (clusterId - this.points.length) % 32;
 		}
-
-		_map(point, clone) {
-			if(point.numPoints) return clone ? extend({}, point.d) : point.d;
-
-			const result = this.points[point.index].d;
-			return clone ? extend({}, result) : result;
-		}
 	}
 
 	const fround = Math.fround || (tmp => ((x) => { tmp[0] = +x; return tmp[0]; }))(new Float32Array(1));
 
-	function createCluster(x, y, id, numPoints, d) {
+	function createCluster(x, y, id, numPoints) {
 		return {
 			x: fround(x),
 			y: fround(y),
 			zoom: Infinity,
 			id,
 			parentId: -1,
-			numPoints,
-			d
+			numPoints
 		};
 	}
 
@@ -438,24 +428,18 @@ const kGmapClusterer = function() {
 	}
 
 	function getClusterJSON(cluster) {
-		return {
-			x: xLng(cluster.x),
-			y: yLat(cluster.y),
-			d: getClusterProperties(cluster)
-		};
-	}
-
-	function getClusterProperties(cluster) {
 		const count = cluster.numPoints;
 		const abbrev =
 			count >= 10000 ? `${Math.round(count / 1000)  }k` :
 			count >= 1000 ? `${Math.round(count / 100) / 10  }k` : count;
 
-		return extend(extend({}, cluster.d), {
+		return {
+			x: xLng(cluster.x),
+			y: yLat(cluster.y),
 			cluster_id: cluster.id,
 			nb_points: count,
 			nb_points_abbr: abbrev
-		});
+		};
 	}
 
 	function lngX(lng) {
