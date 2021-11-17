@@ -1,7 +1,7 @@
 'use strict';
 
 const KnGmapClusterer = function() {
-	const VERSION = '2.0.5',
+	const VERSION = '2.0.6',
 	GV = {};
 
 	/**
@@ -14,7 +14,7 @@ const KnGmapClusterer = function() {
 
 		if(!opt) opt = {};
 		if(!opt.minZoom) opt.minZoom = 0; // min zoom to generate clusters on
-		if(!opt.maxZoom) opt.maxZoom = 16; // max zoom level to cluster the points on
+		if(!opt.maxZoom) opt.maxZoom = 17; // max zoom level to cluster the points on
 		if(!opt.minPoints) opt.minPoints = 2; // minimum points to form a cluster
 		if(!opt.radius) opt.radius = 256; // cluster radius in pixels
 		if(!opt.extent) opt.extent = 512; // tile extent (radius is calculated relative to it)
@@ -72,7 +72,12 @@ const KnGmapClusterer = function() {
 	 */
 	function onMapIdle() {
 		console.log('KnGmapClusterer.onMapIdle()');
+
+		// Draw the clusters
 		drawClusters(GV.map.getBounds(), GV.map.getZoom());
+
+		// Reset the max zoom
+		GV.map.setOptions({ maxZoom: undefined });
 	}
 
 	/**
@@ -95,13 +100,19 @@ const KnGmapClusterer = function() {
 		// Clear markers
 		clearMarkers();
 
-		// Load point into supercluster
-		GV.kcluster.load(points);
+		// Min one point
+		if(points.length > 0) {
+			// Load points into supercluster
+			GV.kcluster.load(points);
 
-		// Fit map to bounds
-		const bounds = new google.maps.LatLngBounds();
-		points.forEach(p => bounds.extend({lat: p.y, lng: p.x}));
-		GV.map.fitBounds(bounds);
+			// Max zoom for the fit bounds
+			GV.map.setOptions({ maxZoom: 17 });
+
+			// Fit map to bounds
+			const bounds = new google.maps.LatLngBounds();
+			points.forEach(p => bounds.extend({lat: p.y, lng: p.x}));
+			GV.map.fitBounds(bounds);
+		}
 
 		// Add the idle listener => drawClusters
 		addIdleListener();
