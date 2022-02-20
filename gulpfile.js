@@ -22,7 +22,7 @@ const terser_options = {
 },
 header_txt= `
 	KnGmapClusterer v<%= pkg.version %> (<%= moment().format('YYYY-MM-DD HH:mm:ss ZZ') %>)
-	Copyright (c) 2021 <%= pkg.author %>
+	Copyright (c) 2021 - <%= moment().format('YYYY') %> <%= pkg.author %>
 	Released under the MIT license
 `;
 

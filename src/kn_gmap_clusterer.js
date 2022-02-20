@@ -1,7 +1,7 @@
 'use strict';
 
 const KnGmapClusterer = function() {
-	const VERSION = '2.0.6',
+	const VERSION = '2.0.7',
 	GV = {};
 
 	/**
@@ -75,9 +75,6 @@ const KnGmapClusterer = function() {
 
 		// Draw the clusters
 		drawClusters(GV.map.getBounds(), GV.map.getZoom());
-
-		// Reset the max zoom
-		GV.map.setOptions({ maxZoom: undefined });
 	}
 
 	/**
@@ -102,16 +99,18 @@ const KnGmapClusterer = function() {
 
 		// Min one point
 		if(points.length > 0) {
-			// Load points into supercluster
-			GV.kcluster.load(points);
-
-			// Max zoom for the fit bounds
-			GV.map.setOptions({ maxZoom: 17 });
-
-			// Fit map to bounds
+			// Markers bounds
 			const bounds = new google.maps.LatLngBounds();
 			points.forEach(p => bounds.extend({lat: p.y, lng: p.x}));
-			GV.map.fitBounds(bounds);
+
+			// Fit map to bounds
+			GV.map.setOptions({
+				zoom: getBoundsZoomLevel(bounds),
+				center: bounds.getCenter()
+			});
+
+			// Load points into supercluster
+			GV.kcluster.load(points);
 		}
 
 		// Add the idle listener => drawClusters
@@ -190,9 +189,10 @@ const KnGmapClusterer = function() {
 	function onClusterClick(e) {
 		console.log('KnGmapClusterer.onClusterClick()', e);
 		e.stop();
+
 		GV.map.setOptions({
-			center: this.getPosition(),
-			zoom: GV.kcluster.getClusterExpansionZoom(this.k_data.cluster_id)
+			zoom: GV.kcluster.getClusterExpansionZoom(this.k_data.cluster_id),
+			center: this.getPosition()
 		});
 	}
 
@@ -250,6 +250,36 @@ const KnGmapClusterer = function() {
 		removeIdleListener();
 		GV.markers.forEach(m => removeMarkerFromMap(m));
 		GV.markers.clear();
+	}
+
+	/**
+	 * get bounds zoom level
+	 * @param bounds
+	 * @return int
+	 */
+	function getBoundsZoomLevel(bounds) {
+		function _latRad(lat) {
+			const sin = Math.sin(lat * Math.PI / 180),
+			rad_x2 = Math.log((1 + sin) / (1 - sin)) / 2;
+
+			return Math.max(Math.min(rad_x2, Math.PI), -Math.PI) / 2;
+		}
+
+		function _zoom(map_px, world_px, fraction) {
+			return Math.floor(Math.log(map_px / world_px / fraction) / Math.LN2);
+		}
+
+		const ne = bounds.getNorthEast(),
+		sw = bounds.getSouthWest(),
+		lat_fraction = (_latRad(ne.lat()) - _latRad(sw.lat())) / Math.PI,
+		lng_diff = ne.lng() - sw.lng(),
+		lng_fraction = ((lng_diff < 0) ? (lng_diff + 360) : lng_diff) / 360;
+
+		return Math.min(
+			_zoom(GV.map.getDiv().offsetHeight, 256, lat_fraction),
+			_zoom(GV.map.getDiv().offsetWidth, 256, lng_fraction),
+			17
+		);
 	}
 
 	/************************************************************
@@ -659,6 +689,7 @@ const KnGmapClusterer = function() {
 		setOptions,
 		load,
 		getMarkers,
-		clearMarkers
+		clearMarkers,
+		getBoundsZoomLevel
 	}
 }();
