@@ -210,8 +210,8 @@ const KnGmapClusterer = function() {
 			position: { lat: m.y, lng: m.x }
 		});
 
-		if(m.label) marker.setLabel({
-			text: m.label,
+		if(m.label !== undefined) marker.setLabel({
+			text: String(m.label),
 			color: GV.opt.markerFontColor,
 			fontSize: GV.opt.markerFontSize,
 			fontWeight: GV.opt.markerFontWeight,
@@ -307,22 +307,24 @@ const KnGmapClusterer = function() {
 		}
 
 		getClusters(bbox, zoom) {
-			let minLng = ((bbox[0] + 180) % 360 + 360) % 360 - 180;
-			const minLat = Math.max(-90, Math.min(90, bbox[1]));
-			let maxLng = bbox[2] === 180 ? 180 : ((bbox[2] + 180) % 360 + 360) % 360 - 180;
-			const maxLat = Math.max(-90, Math.min(90, bbox[3]));
+			let minLng = ((bbox[0] + 180) % 360 + 360) % 360 - 180,
+			maxLng = bbox[2] === 180 ? 180 : ((bbox[2] + 180) % 360 + 360) % 360 - 180;
+
+			const minLat = Math.max(-90, Math.min(90, bbox[1])),
+			maxLat = Math.max(-90, Math.min(90, bbox[3]));
 
 			if (bbox[2] - bbox[0] >= 360) {
 				minLng = -180;
 				maxLng = 180;
 			} else if (minLng > maxLng) {
-				const easternHem = this.getClusters([minLng, minLat, 180, maxLat], zoom);
-				const westernHem = this.getClusters([-180, minLat, maxLng, maxLat], zoom);
+				const easternHem = this.getClusters([minLng, minLat, 180, maxLat], zoom),
+				westernHem = this.getClusters([-180, minLat, maxLng, maxLat], zoom);
+
 				return easternHem.concat(westernHem);
 			}
 
-			const tree = this.trees[this._limitZoom(zoom)];
-			const clusters = [];
+			const tree = this.trees[this._limitZoom(zoom)],
+			clusters = [];
 
 			tree.range(lngX(minLng), latY(maxLat), lngX(maxLng), latY(minLat)).forEach(id => {
 				const c = tree.points[id];
@@ -333,9 +335,9 @@ const KnGmapClusterer = function() {
 		}
 
 		getChildren(clusterId) {
-			const originId = this._getOriginId(clusterId);
-			const originZoom = this._getOriginZoom(clusterId);
-			const errorMsg = 'No cluster with the specified id.';
+			const originId = this._getOriginId(clusterId),
+			originZoom = this._getOriginZoom(clusterId),
+			errorMsg = 'No cluster with the specified id.';
 
 			const index = this.trees[originZoom];
 			if (!index) throw new Error(errorMsg);
@@ -343,8 +345,8 @@ const KnGmapClusterer = function() {
 			const origin = index.points[originId];
 			if (!origin) throw new Error(errorMsg);
 
-			const r = GV.opt.radius / (GV.opt.extent * Math.pow(2, originZoom - 1));
-			const children = [];
+			const r = GV.opt.radius / (GV.opt.extent * Math.pow(2, originZoom - 1)),
+			children = [];
 
 			index.within(origin.x, origin.y, r).forEach(id => {
 				const c = index.points[id];
@@ -374,17 +376,17 @@ const KnGmapClusterer = function() {
 		}
 
 		_cluster(points, zoom) {
-			const clusters = [];
-			const r = GV.opt.radius / (GV.opt.extent * Math.pow(2, zoom));
+			const r = GV.opt.radius / (GV.opt.extent * Math.pow(2, zoom)),
+			clusters = [];
 
 			points.forEach((p,i) => {
 				if (p.zoom <= zoom) return;
 				p.zoom = zoom;
 
-				const tree = this.trees[zoom + 1];
-				const neighborIds = tree.within(p.x, p.y, r);
+				const tree = this.trees[zoom + 1],
+				neighborIds = tree.within(p.x, p.y, r),
+				numPointsOrigin = p.numPoints || 1;
 
-				const numPointsOrigin = p.numPoints || 1;
 				let numPoints = numPointsOrigin;
 
 				neighborIds.forEach(neighborId => {
@@ -393,8 +395,8 @@ const KnGmapClusterer = function() {
 				});
 
 				if (numPoints > numPointsOrigin && numPoints >= GV.opt.minPoints) {
-					let wx = p.x * numPointsOrigin;
-					let wy = p.y * numPointsOrigin;
+					let wx = p.x * numPointsOrigin,
+					wy = p.y * numPointsOrigin;
 
 					const id = (i << 5) + (zoom + 1) + this.points.length;
 
@@ -463,10 +465,8 @@ const KnGmapClusterer = function() {
 	}
 
 	function getClusterJSON(cluster) {
-		const count = cluster.numPoints;
-		const abbrev =
-			count >= 10000 ? `${Math.round(count / 1000)  }k` :
-			count >= 1000 ? `${Math.round(count / 100) / 10  }k` : count;
+		const count = cluster.numPoints,
+		abbrev = count >= 10000 ? `${Math.round(count / 1000)}k` : (count >= 1000 ? `${Math.round(count / 100) / 10}k` : count);
 
 		return {
 			x: xLng(cluster.x),
@@ -482,8 +482,9 @@ const KnGmapClusterer = function() {
 	}
 
 	function latY(lat) {
-		const sin = Math.sin(lat * Math.PI / 180);
-		const y = (0.5 - 0.25 * Math.log((1 + sin) / (1 - sin)) / Math.PI);
+		const sin = Math.sin(lat * Math.PI / 180),
+		y = (0.5 - 0.25 * Math.log((1 + sin) / (1 - sin)) / Math.PI);
+
 		return y < 0 ? 0 : y > 1 ? 1 : y;
 	}
 
@@ -493,6 +494,7 @@ const KnGmapClusterer = function() {
 
 	function yLat(y) {
 		const y2 = (180 - y * 360) * Math.PI / 180;
+
 		return 360 * Math.atan(Math.exp(y2)) / Math.PI - 90;
 	}
 
@@ -504,10 +506,9 @@ const KnGmapClusterer = function() {
 		constructor(points) {
 			this.points = points;
 
-			const IndexArrayType = points.length < 65536 ? Uint16Array : Uint32Array;
-
-			const ids = this.ids = new IndexArrayType(points.length);
-			const coords = this.coords = new Float32Array(points.length * 2);
+			const IndexArrayType = points.length < 65536 ? Uint16Array : Uint32Array,
+			ids = this.ids = new IndexArrayType(points.length),
+			coords = this.coords = new Float32Array(points.length * 2);
 
 			for (let i = 0; i < points.length; i++) {
 				ids[i] = i;
@@ -528,14 +529,15 @@ const KnGmapClusterer = function() {
 	}
 
 	function rangeKD(ids, coords, minX, minY, maxX, maxY) {
-		const stack = [0, ids.length - 1, 0];
-		const result = [];
+		const stack = [0, ids.length - 1, 0],
+		result = [];
+
 		let x, y;
 
 		while (stack.length) {
-			const axis = stack.pop();
-			const right = stack.pop();
-			const left = stack.pop();
+			const axis = stack.pop(),
+			right = stack.pop(),
+			left = stack.pop();
 
 			if (right - left <= GV.opt.nodeSize) {
 				for (let i = left; i <= right; i++) {
@@ -543,6 +545,7 @@ const KnGmapClusterer = function() {
 					y = coords[2 * i + 1];
 					if (x >= minX && x <= maxX && y >= minY && y <= maxY) result.push(ids[i]);
 				}
+
 				continue;
 			}
 
@@ -584,19 +587,21 @@ const KnGmapClusterer = function() {
 	function select(ids, coords, k, left, right, inc) {
 		while (right > left) {
 			if (right - left > 600) {
-				const n = right - left + 1;
-				const m = k - left + 1;
-				const z = Math.log(n);
-				const s = 0.5 * Math.exp(2 * z / 3);
-				const sd = 0.5 * Math.sqrt(z * s * (n - s) / n) * (m - n / 2 < 0 ? -1 : 1);
-				const newLeft = Math.max(left, Math.floor(k - m * s / n + sd));
-				const newRight = Math.min(right, Math.floor(k + (n - m) * s / n + sd));
+				const n = right - left + 1,
+				m = k - left + 1,
+				z = Math.log(n),
+				s = 0.5 * Math.exp(2 * z / 3),
+				sd = 0.5 * Math.sqrt(z * s * (n - s) / n) * (m - n / 2 < 0 ? -1 : 1),
+				newLeft = Math.max(left, Math.floor(k - m * s / n + sd)),
+				newRight = Math.min(right, Math.floor(k + (n - m) * s / n + sd));
+
 				select(ids, coords, k, newLeft, newRight, inc);
 			}
 
 			const t = coords[2 * k + inc];
-			let i = left;
-			let j = right;
+
+			let i = left,
+			j = right;
 
 			swapItem(ids, coords, left, k);
 			if (coords[2 * right + inc] > t) swapItem(ids, coords, left, right);
@@ -633,26 +638,26 @@ const KnGmapClusterer = function() {
 	}
 
 	function withinKD(ids, coords, qx, qy, r) {
-		const stack = [0, ids.length - 1, 0];
-		const result = [];
-		const r2 = r * r;
+		const stack = [0, ids.length - 1, 0],
+		result = [],
+		r2 = r * r;
 
 		while (stack.length) {
-			const axis = stack.pop();
-			const right = stack.pop();
-			const left = stack.pop();
+			const axis = stack.pop(),
+			right = stack.pop(),
+			left = stack.pop();
 
 			if (right - left <= GV.opt.nodeSize) {
 				for (let i = left; i <= right; i++) {
 					if (sqDist(coords[2 * i], coords[2 * i + 1], qx, qy) <= r2) result.push(ids[i]);
 				}
+
 				continue;
 			}
 
-			const m = Math.floor((left + right) / 2);
-
-			const x = coords[2 * m];
-			const y = coords[2 * m + 1];
+			const m = Math.floor((left + right) / 2),
+			x = coords[2 * m],
+			y = coords[2 * m + 1];
 
 			if (sqDist(x, y, qx, qy) <= r2) result.push(ids[m]);
 
@@ -674,8 +679,9 @@ const KnGmapClusterer = function() {
 	}
 
 	function sqDist(ax, ay, bx, by) {
-		const dx = ax - bx;
-		const dy = ay - by;
+		const dx = ax - bx,
+		dy = ay - by;
+
 		return dx * dx + dy * dy;
 	}
 
