@@ -1,5 +1,5 @@
 /**
- * KnGmapClusterer v2.0.8 (2022-03-02 22:34:21 +0100)
+ * KnGmapClusterer v2.0.8 (2022-03-02 22:55:23 +0100)
  * Copyright (c) 2021 - 2022 Florent VIALATTE
  * Released under the MIT license
  */
@@ -214,13 +214,13 @@ const KnGmapClusterer = function() {
 
 		if(GV.opt.mergeDuplicates) {
 			for(const am of GV.markers) {
-				if(!am[1].position.equals(positon)) continue;
+				if(am[1].is_dup || !am[1].position.equals(positon)) continue;
 				console.log("KnGmapClusterer.addMarkerToMap() duplicate", m.id);
 
 				if(!am[1].duplicates) am[1].duplicates = [];
 				am[1].duplicates.push(m.id);
 
-				GV.markers.set('m' + m.id, {setMap: () => 1});
+				GV.markers.set('m' + m.id, {is_dup: 1, setMap: () => 1});
 				return;
 			}
 
