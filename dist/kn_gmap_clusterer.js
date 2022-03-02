@@ -1,13 +1,12 @@
 /**
- * KnGmapClusterer v2.0.7 (2022-02-20 16:55:17 +0100)
+ * KnGmapClusterer v2.0.8 (2022-03-02 22:34:21 +0100)
  * Copyright (c) 2021 - 2022 Florent VIALATTE
  * Released under the MIT license
  */
-
 'use strict';
 
 const KnGmapClusterer = function() {
-	const VERSION = '2.0.7',
+	const VERSION = '2.0.8',
 	GV = {};
 
 	/**
@@ -25,6 +24,7 @@ const KnGmapClusterer = function() {
 		if(!opt.radius) opt.radius = 256; // cluster radius in pixels
 		if(!opt.extent) opt.extent = 512; // tile extent (radius is calculated relative to it)
 		if(!opt.nodeSize) opt.nodeSize = 64; // size of the KD-tree leaf node, affects performance
+		if(!opt.mergeDuplicates) opt.mergeDuplicates = false;
 		if(!opt.clickToZoom) opt.clickToZoom = true;
 		if(!opt.clusterIcon) opt.clusterIcon = null;
 		if(!opt.clusterFontColor) opt.clusterFontColor = '#000';
@@ -51,6 +51,7 @@ const KnGmapClusterer = function() {
 	function setOptions(opt) {
 		console.log('KnGmapClusterer.setOptions()', opt);
 
+		GV.opt.mergeDuplicates = opt.mergeDuplicates || GV.opt.mergeDuplicates;
 		GV.opt.clickToZoom = opt.clickToZoom || GV.opt.clickToZoom;
 		GV.opt.clusterIcon = opt.clusterIcon || GV.opt.clusterIcon;
 		GV.opt.clusterFontColor = opt.clusterFontColor || GV.opt.clusterFontColor;
@@ -209,11 +210,28 @@ const KnGmapClusterer = function() {
 	function addMarkerToMap(m) {
 		console.log('KnGmapClusterer.addMarkerToMap()', m);
 
+		const positon = new google.maps.LatLng(m.y, m.x);
+
+		if(GV.opt.mergeDuplicates) {
+			for(const am of GV.markers) {
+				if(!am[1].position.equals(positon)) continue;
+				console.log("KnGmapClusterer.addMarkerToMap() duplicate", m.id);
+
+				if(!am[1].duplicates) am[1].duplicates = [];
+				am[1].duplicates.push(m.id);
+
+				GV.markers.set('m' + m.id, {setMap: () => 1});
+				return;
+			}
+
+			console.log("KnGmapClusterer.addMarkerToMap() not a duplicate", m.id);
+		}
+
 		const marker = new google.maps.Marker({
 			k_data: m,
 			map: GV.map,
 			icon: (typeof GV.opt.markerIcon == 'function' ? GV.opt.markerIcon(m) : GV.opt.markerIcon) || null,
-			position: { lat: m.y, lng: m.x }
+			position: positon
 		});
 
 		if(m.label !== undefined) marker.setLabel({
