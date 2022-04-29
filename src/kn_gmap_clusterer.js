@@ -1,7 +1,7 @@
 'use strict';
 
 const KnGmapClusterer = function() {
-	const VERSION = '2.0.8',
+	const VERSION = '2.0.9',
 	GV = {};
 
 	/**
@@ -391,7 +391,7 @@ const KnGmapClusterer = function() {
 		}
 
 		_limitZoom(z) {
-			return Math.max(GV.opt.minZoom, Math.min(+z, GV.opt.maxZoom + 1));
+			return Math.max(GV.opt.minZoom, Math.min(Math.floor(+z), GV.opt.maxZoom + 1));
 		}
 
 		_cluster(points, zoom) {

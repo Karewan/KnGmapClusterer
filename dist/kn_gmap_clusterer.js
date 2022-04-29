@@ -1,12 +1,13 @@
 /**
- * KnGmapClusterer v2.0.8 (2022-03-02 22:55:23 +0100)
+ * KnGmapClusterer v2.0.9 (2022-04-29 22:16:46 +0200)
  * Copyright (c) 2021 - 2022 Florent VIALATTE
  * Released under the MIT license
  */
+
 'use strict';
 
 const KnGmapClusterer = function() {
-	const VERSION = '2.0.8',
+	const VERSION = '2.0.9',
 	GV = {};
 
 	/**
@@ -396,7 +397,7 @@ const KnGmapClusterer = function() {
 		}
 
 		_limitZoom(z) {
-			return Math.max(GV.opt.minZoom, Math.min(+z, GV.opt.maxZoom + 1));
+			return Math.max(GV.opt.minZoom, Math.min(Math.floor(+z), GV.opt.maxZoom + 1));
 		}
 
 		_cluster(points, zoom) {
