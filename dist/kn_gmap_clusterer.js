@@ -3,7 +3,6 @@
  * Copyright (c) 2021 - 2022 Florent VIALATTE
  * Released under the MIT license
  */
-
 'use strict';
 
 const KnGmapClusterer = function() {
