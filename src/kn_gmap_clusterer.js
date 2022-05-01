@@ -302,7 +302,7 @@ const KnGmapClusterer = function() {
 	}
 
 	/************************************************************
-	 * Custom version of github.com/mapbox/supercluster v7.1.4
+	 * Custom version of github.com/mapbox/supercluster v7.1.5
 	 ***********************************************************/
 
 	class kCluster {
