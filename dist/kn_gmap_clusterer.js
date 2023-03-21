@@ -1,313 +1,210 @@
 /**
- * KnGmapClusterer v2.0.9 (2022-04-29 22:16:46 +0200)
- * Copyright (c) 2021 - 2022 Florent VIALATTE
+ * KnGmapClusterer v3.0.0 (2023-03-21 22:22:57 +0100)
+ * Copyright (c) 2021 - 2023 Florent VIALATTE
  * Released under the MIT license
  */
 'use strict';
 
-const KnGmapClusterer = function() {
-	const VERSION = '2.0.9',
-	GV = {};
+/**
+ * KnGmapClusterer class constructor
+ * @param map
+ * @param opt
+ * @returns KnGmapClusterer
+ */
+const KnGmapClusterer = function(map, opt) {
+	console.log('KnGmapClusterer()');
 
-	/**
-	 * init KnGmapClusterer
-	 * @param map
-	 * @param opt
-	 */
-	function init(map, opt) {
-		console.log('KnGmapClusterer.init()');
+	const mThis = this;
 
-		if(!opt) opt = {};
-		if(!opt.minZoom) opt.minZoom = 0; // min zoom to generate clusters on
-		if(!opt.maxZoom) opt.maxZoom = 17; // max zoom level to cluster the points on
-		if(!opt.minPoints) opt.minPoints = 2; // minimum points to form a cluster
-		if(!opt.radius) opt.radius = 256; // cluster radius in pixels
-		if(!opt.extent) opt.extent = 512; // tile extent (radius is calculated relative to it)
-		if(!opt.nodeSize) opt.nodeSize = 64; // size of the KD-tree leaf node, affects performance
-		if(!opt.mergeDuplicates) opt.mergeDuplicates = false;
-		if(!opt.clickToZoom) opt.clickToZoom = true;
-		if(!opt.clusterIcon) opt.clusterIcon = null;
-		if(!opt.clusterFontColor) opt.clusterFontColor = '#000';
-		if(!opt.clusterFontSize) opt.clusterFontSize = '12px';
-		if(!opt.clusterFontFamily) opt.clusterFontFamily = 'sans-serif';
-		if(!opt.clusterFontWeight) opt.clusterFontWeight = 'normal';
-		if(!opt.markerFontColor) opt.markerFontColor = '#000';
-		if(!opt.markerFontSize) opt.markerFontSize = '12px';
-		if(!opt.markerFontFamily) opt.markerFontFamily = 'sans-serif';
-		if(!opt.markerFontWeight) opt.markerFontWeight = 'normal';
-		if(!opt.markerIcon) opt.markerIcon = null;
-		if(!opt.onMarkerClick) opt.onMarkerClick = null;
+	/************************************************************
+	 * Custom version of github.com/mourner/kdbush v3.0.0
+	 ***********************************************************/
 
-		GV.map = map;
-		GV.opt = opt;
-		GV.markers = new Map();
-		GV.kcluster = new kCluster();
-	}
+	class KDBush {
+		constructor(points) {
+			this.points = points;
 
-	/**
-	 * set options
-	 * @param opt
-	 */
-	function setOptions(opt) {
-		console.log('KnGmapClusterer.setOptions()', opt);
+			const IndexArrayType = points.length < 65536 ? Uint16Array : Uint32Array,
+			ids = this.ids = new IndexArrayType(points.length),
+			coords = this.coords = new Float32Array(points.length * 2);
 
-		GV.opt.mergeDuplicates = opt.mergeDuplicates || GV.opt.mergeDuplicates;
-		GV.opt.clickToZoom = opt.clickToZoom || GV.opt.clickToZoom;
-		GV.opt.clusterIcon = opt.clusterIcon || GV.opt.clusterIcon;
-		GV.opt.clusterFontColor = opt.clusterFontColor || GV.opt.clusterFontColor;
-		GV.opt.clusterFontSize = opt.clusterFontSize || GV.opt.clusterFontSize;
-		GV.opt.clusterFontFamily = opt.clusterFontFamily || GV.opt.clusterFontFamily;
-		GV.opt.clusterFontWeight = opt.clusterFontWeight || GV.opt.clusterFontWeight;
-		GV.opt.markerFontColor = opt.markerFontColor || GV.opt.markerFontColor;
-		GV.opt.markerFontSize = opt.markerFontSize || GV.opt.markerFontSize;
-		GV.opt.markerFontFamily = opt.markerFontFamily || GV.opt.markerFontFamily;
-		GV.opt.markerFontWeight = opt.markerFontWeight || GV.opt.markerFontWeight;
-		GV.opt.markerIcon = opt.markerIcon || GV.opt.markerIcon;
-		GV.opt.onMarkerClick = opt.onMarkerClick || GV.opt.onMarkerClick;
-	}
+			for (let i = 0; i < points.length; i++) {
+				ids[i] = i;
+				coords[2 * i] = points[i].x;
+				coords[2 * i + 1] = points[i].y;
+			}
 
-	/**
-	 * add idle listener
-	 */
-	function addIdleListener() {
-		console.log('KnGmapClusterer.addIdleListener()');
-		GV.idle_listener = GV.map.addListener('idle', onMapIdle);
-	}
-
-	/**
-	 * on map idle
-	 */
-	function onMapIdle() {
-		console.log('KnGmapClusterer.onMapIdle()');
-
-		// Draw the clusters
-		drawClusters(GV.map.getBounds(), GV.map.getZoom());
-	}
-
-	/**
-	 * remove idle listener
-	 */
-	function removeIdleListener() {
-		console.log('KnGmapClusterer.removeIdleListener()');
-		if(!GV.idle_listener) return;
-		GV.idle_listener.remove();
-		GV.idle_listener = null;
-	}
-
-	/**
-	 * load points
-	 * @param points
-	 */
-	function load(points) {
-		console.log('KnGmapClusterer.load()');
-
-		// Clear markers
-		clearMarkers();
-
-		// Min one point
-		if(points.length > 0) {
-			// Markers bounds
-			const bounds = new google.maps.LatLngBounds();
-			points.forEach(p => bounds.extend({lat: p.y, lng: p.x}));
-
-			// Fit map to bounds
-			GV.map.setOptions({
-				zoom: getBoundsZoomLevel(bounds),
-				center: bounds.getCenter()
-			});
-
-			// Load points into supercluster
-			GV.kcluster.load(points);
+			sortKD(ids, coords, 0, ids.length - 1, 0);
 		}
 
-		// Add the idle listener => drawClusters
-		addIdleListener();
+		range(minX, minY, maxX, maxY) {
+			return rangeKD(this.ids, this.coords, minX, minY, maxX, maxY);
+		}
+
+		within(x, y, r) {
+			return withinKD(this.ids, this.coords, x, y, r);
+		}
 	}
 
-	/**
-	 * draw clusters
-	 * @param bounds
-	 * @param zoom
-	 */
-	function drawClusters(bounds, zoom) {
-		console.log('KnGmapClusterer.drawClusters()', bounds, zoom);
+	function rangeKD(ids, coords, minX, minY, maxX, maxY) {
+		const stack = [0, ids.length - 1, 0],
+		result = [];
 
-		const old_markers = new Map(GV.markers);
-		GV.markers.clear();
+		let x, y;
 
-		GV.kcluster.getClusters([bounds.getSouthWest().lng(), bounds.getSouthWest().lat(), bounds.getNorthEast().lng(), bounds.getNorthEast().lat()], zoom).forEach(c => {
-			console.log("KnGmapClusterer.drawClusters()", c);
+		while (stack.length) {
+			const axis = stack.pop(),
+			right = stack.pop(),
+			left = stack.pop();
 
-			if(c.cluster_id) {
-				if(old_markers.has('c' + c.cluster_id)) {
-					console.log('KnGmapClusterer.drawClusters() cluster already on map');
-					GV.markers.set('c' + c.cluster_id, old_markers.get('c' + c.cluster_id));
-					old_markers.delete('c' + c.cluster_id);
-					return;
+			if (right - left <= GV.opt.nodeSize) {
+				for (let i = left; i <= right; i++) {
+					x = coords[2 * i];
+					y = coords[2 * i + 1];
+					if (x >= minX && x <= maxX && y >= minY && y <= maxY) result.push(ids[i]);
 				}
 
-				addClusterToMap(c);
-			} else {
-				if(old_markers.has('m' + c.id)) {
-					console.log('KnGmapClusterer.drawClusters() marker already on map');
-					GV.markers.set('m' + c.id, old_markers.get('m' + c.id));
-					old_markers.delete('m' + c.id);
-					return;
+				continue;
+			}
+
+			const m = Math.floor((left + right) / 2);
+
+			x = coords[2 * m];
+			y = coords[2 * m + 1];
+
+			if (x >= minX && x <= maxX && y >= minY && y <= maxY) result.push(ids[m]);
+
+			const nextAxis = (axis + 1) % 2;
+
+			if (axis === 0 ? minX <= x : minY <= y) {
+				stack.push(left);
+				stack.push(m - 1);
+				stack.push(nextAxis);
+			}
+			if (axis === 0 ? maxX >= x : maxY >= y) {
+				stack.push(m + 1);
+				stack.push(right);
+				stack.push(nextAxis);
+			}
+		}
+
+		return result;
+	}
+
+	function sortKD(ids, coords, left, right, depth) {
+		if (right - left <= GV.opt.nodeSize) return;
+
+		const m = (left + right) >> 1;
+
+		select(ids, coords, m, left, right, depth % 2);
+
+		sortKD(ids, coords, left, m - 1, depth + 1);
+		sortKD(ids, coords, m + 1, right, depth + 1);
+	}
+
+	function select(ids, coords, k, left, right, inc) {
+		while (right > left) {
+			if (right - left > 600) {
+				const n = right - left + 1,
+				m = k - left + 1,
+				z = Math.log(n),
+				s = 0.5 * Math.exp(2 * z / 3),
+				sd = 0.5 * Math.sqrt(z * s * (n - s) / n) * (m - n / 2 < 0 ? -1 : 1),
+				newLeft = Math.max(left, Math.floor(k - m * s / n + sd)),
+				newRight = Math.min(right, Math.floor(k + (n - m) * s / n + sd));
+
+				select(ids, coords, k, newLeft, newRight, inc);
+			}
+
+			const t = coords[2 * k + inc];
+
+			let i = left,
+			j = right;
+
+			swapItem(ids, coords, left, k);
+			if (coords[2 * right + inc] > t) swapItem(ids, coords, left, right);
+
+			while (i < j) {
+				swapItem(ids, coords, i, j);
+				i++;
+				j--;
+				while (coords[2 * i + inc] < t) i++;
+				while (coords[2 * j + inc] > t) j--;
+			}
+
+			if (coords[2 * left + inc] === t) swapItem(ids, coords, left, j);
+			else {
+				j++;
+				swapItem(ids, coords, j, right);
+			}
+
+			if (j <= k) left = j + 1;
+			if (k <= j) right = j - 1;
+		}
+	}
+
+	function swapItem(ids, coords, i, j) {
+		swap(ids, i, j);
+		swap(coords, 2 * i, 2 * j);
+		swap(coords, 2 * i + 1, 2 * j + 1);
+	}
+
+	function swap(arr, i, j) {
+		const tmp = arr[i];
+		arr[i] = arr[j];
+		arr[j] = tmp;
+	}
+
+	function withinKD(ids, coords, qx, qy, r) {
+		const stack = [0, ids.length - 1, 0],
+		result = [],
+		r2 = r * r;
+
+		while (stack.length) {
+			const axis = stack.pop(),
+			right = stack.pop(),
+			left = stack.pop();
+
+			if (right - left <= GV.opt.nodeSize) {
+				for (let i = left; i <= right; i++) {
+					if (sqDist(coords[2 * i], coords[2 * i + 1], qx, qy) <= r2) result.push(ids[i]);
 				}
 
-				addMarkerToMap(c);
-			}
-		});
-
-		old_markers.forEach(m => removeMarkerFromMap(m));
-	}
-
-	/**
-	 * add cluster to map
-	 * @param c
-	 */
-	function addClusterToMap(c) {
-		console.log('KnGmapClusterer.addClusterToMap()', c);
-
-		const marker = new google.maps.Marker({
-			k_data: c,
-			map: GV.map,
-			icon: (typeof GV.opt.clusterIcon == 'function' ? GV.opt.clusterIcon(c) : GV.opt.clusterIcon) || null,
-			zIndex: Number(google.maps.Marker.MAX_ZINDEX) + c.nb_points,
-			position: { lat: c.y, lng: c.x },
-			label: {
-				text: String(c.nb_points_abbr),
-				color: GV.opt.clusterFontColor,
-				fontSize: GV.opt.clusterFontSize,
-				fontWeight: GV.opt.clusterFontWeight,
-				fontFamily: GV.opt.clusterFontFamily
-			}
-		});
-
-		if(GV.opt.clickToZoom) marker.k_click_listener = marker.addListener('click', onClusterClick);
-
-		GV.markers.set('c' + c.cluster_id, marker);
-	}
-
-	/**
-	 * on cluster click
-	 * @param e
-	 */
-	function onClusterClick(e) {
-		console.log('KnGmapClusterer.onClusterClick()', e);
-		e.stop();
-
-		GV.map.setOptions({
-			zoom: GV.kcluster.getClusterExpansionZoom(this.k_data.cluster_id),
-			center: this.getPosition()
-		});
-	}
-
-	/**
-	 * add marker to map
-	 * @param m
-	 */
-	function addMarkerToMap(m) {
-		console.log('KnGmapClusterer.addMarkerToMap()', m);
-
-		const positon = new google.maps.LatLng(m.y, m.x);
-
-		if(GV.opt.mergeDuplicates) {
-			for(const am of GV.markers) {
-				if(am[1].is_dup || !am[1].position.equals(positon)) continue;
-				console.log("KnGmapClusterer.addMarkerToMap() duplicate", m.id);
-
-				if(!am[1].duplicates) am[1].duplicates = [];
-				am[1].duplicates.push(m.id);
-
-				GV.markers.set('m' + m.id, {is_dup: 1, setMap: () => 1});
-				return;
+				continue;
 			}
 
-			console.log("KnGmapClusterer.addMarkerToMap() not a duplicate", m.id);
+			const m = Math.floor((left + right) / 2),
+			x = coords[2 * m],
+			y = coords[2 * m + 1];
+
+			if (sqDist(x, y, qx, qy) <= r2) result.push(ids[m]);
+
+			const nextAxis = (axis + 1) % 2;
+
+			if (axis === 0 ? qx - r <= x : qy - r <= y) {
+				stack.push(left);
+				stack.push(m - 1);
+				stack.push(nextAxis);
+			}
+			if (axis === 0 ? qx + r >= x : qy + r >= y) {
+				stack.push(m + 1);
+				stack.push(right);
+				stack.push(nextAxis);
+			}
 		}
 
-		const marker = new google.maps.Marker({
-			k_data: m,
-			map: GV.map,
-			icon: (typeof GV.opt.markerIcon == 'function' ? GV.opt.markerIcon(m) : GV.opt.markerIcon) || null,
-			position: positon
-		});
-
-		if(m.label !== undefined) marker.setLabel({
-			text: String(m.label),
-			color: GV.opt.markerFontColor,
-			fontSize: GV.opt.markerFontSize,
-			fontWeight: GV.opt.markerFontWeight,
-			fontFamily: GV.opt.markerFontFamily
-		});
-
-		if(GV.opt.onMarkerClick) marker.k_click_listener = marker.addListener('click', GV.opt.onMarkerClick);
-
-		GV.markers.set('m' + m.id, marker);
+		return result;
 	}
 
-	/**
-	 * get markers
-	 * @return array
-	 */
-	function getMarkers() {
-		console.log('KnGmapClusterer.getMarkers()');
-		return GV.markers;
-	}
+	function sqDist(ax, ay, bx, by) {
+		const dx = ax - bx,
+		dy = ay - by;
 
-	/**
-	 * remove marker from map
-	 * @param m
-	 */
-	function removeMarkerFromMap(m) {
-		console.log('KnGmapClusterer.removeMarkerFromMap()', m);
-		if(m.k_click_listener) m.k_click_listener.remove();
-		m.setMap(null);
-	}
-
-	/**
-	 * clear markers
-	 */
-	function clearMarkers() {
-		console.log('KnGmapClusterer.clearMarkers()');
-		removeIdleListener();
-		GV.markers.forEach(m => removeMarkerFromMap(m));
-		GV.markers.clear();
-	}
-
-	/**
-	 * get bounds zoom level
-	 * @param bounds
-	 * @return int
-	 */
-	function getBoundsZoomLevel(bounds) {
-		function _latRad(lat) {
-			const sin = Math.sin(lat * Math.PI / 180),
-			rad_x2 = Math.log((1 + sin) / (1 - sin)) / 2;
-
-			return Math.max(Math.min(rad_x2, Math.PI), -Math.PI) / 2;
-		}
-
-		function _zoom(map_px, world_px, fraction) {
-			return Math.floor(Math.log(map_px / world_px / fraction) / Math.LN2);
-		}
-
-		const ne = bounds.getNorthEast(),
-		sw = bounds.getSouthWest(),
-		lat_fraction = (_latRad(ne.lat()) - _latRad(sw.lat())) / Math.PI,
-		lng_diff = ne.lng() - sw.lng(),
-		lng_fraction = ((lng_diff < 0) ? (lng_diff + 360) : lng_diff) / 360;
-
-		return Math.min(
-			_zoom(GV.map.getDiv().offsetHeight, 256, lat_fraction),
-			_zoom(GV.map.getDiv().offsetWidth, 256, lng_fraction),
-			17
-		);
+		return dx * dx + dy * dy;
 	}
 
 	/************************************************************
-	 * Custom version of github.com/mapbox/supercluster v7.1.4
+	 * Custom version of github.com/mapbox/supercluster v7.1.5
 	 ***********************************************************/
 
 	class kCluster {
@@ -522,204 +419,311 @@ const KnGmapClusterer = function() {
 		return 360 * Math.atan(Math.exp(y2)) / Math.PI - 90;
 	}
 
-	/************************************************************
-	 * Custom version of github.com/mourner/kdbush v3.0.0
-	 ***********************************************************/
+	/*************************************************
+	 * PRIVATE
+	 ************************************************/
 
-	class KDBush {
-		constructor(points) {
-			this.points = points;
+	// Default opts
+	if(!opt) opt = {};
+	if(!opt.minZoom) opt.minZoom = 0; // min zoom to generate clusters on
+	if(!opt.maxZoom) opt.maxZoom = 17; // max zoom level to cluster the points on
+	if(!opt.minPoints) opt.minPoints = 2; // minimum points to form a cluster
+	if(!opt.radius) opt.radius = 256; // cluster radius in pixels
+	if(!opt.extent) opt.extent = 512; // tile extent (radius is calculated relative to it)
+	if(!opt.nodeSize) opt.nodeSize = 64; // size of the KD-tree leaf node, affects performance
+	if(!opt.mergeDuplicates) opt.mergeDuplicates = false;
+	if(!opt.clickToZoom) opt.clickToZoom = true;
+	if(!opt.clusterIcon) opt.clusterIcon = null;
+	if(!opt.clusterFontColor) opt.clusterFontColor = '#000';
+	if(!opt.clusterFontSize) opt.clusterFontSize = '12px';
+	if(!opt.clusterFontFamily) opt.clusterFontFamily = 'sans-serif';
+	if(!opt.clusterFontWeight) opt.clusterFontWeight = 'normal';
+	if(!opt.markerFontColor) opt.markerFontColor = '#000';
+	if(!opt.markerFontSize) opt.markerFontSize = '12px';
+	if(!opt.markerFontFamily) opt.markerFontFamily = 'sans-serif';
+	if(!opt.markerFontWeight) opt.markerFontWeight = 'normal';
+	if(!opt.markerIcon) opt.markerIcon = null;
+	if(!opt.onMarkerClick) opt.onMarkerClick = null;
 
-			const IndexArrayType = points.length < 65536 ? Uint16Array : Uint32Array,
-			ids = this.ids = new IndexArrayType(points.length),
-			coords = this.coords = new Float32Array(points.length * 2);
+	// Global vars
+	const GV = {};
+	GV.map = map;
+	GV.opt = opt;
+	GV.markers = new Map();
+	GV.kcluster = new kCluster();
 
-			for (let i = 0; i < points.length; i++) {
-				ids[i] = i;
-				coords[2 * i] = points[i].x;
-				coords[2 * i + 1] = points[i].y;
-			}
+	/**
+	 * add idle listener
+	 */
+	function addIdleListener() {
+		console.log('KnGmapClusterer.addIdleListener()');
 
-			sortKD(ids, coords, 0, ids.length - 1, 0);
-		}
-
-		range(minX, minY, maxX, maxY) {
-			return rangeKD(this.ids, this.coords, minX, minY, maxX, maxY);
-		}
-
-		within(x, y, r) {
-			return withinKD(this.ids, this.coords, x, y, r);
-		}
+		GV.idle_listener = GV.map.addListener('idle', onMapIdle);
 	}
 
-	function rangeKD(ids, coords, minX, minY, maxX, maxY) {
-		const stack = [0, ids.length - 1, 0],
-		result = [];
+	/**
+	 * on map idle
+	 */
+	function onMapIdle() {
+		console.log('KnGmapClusterer.onMapIdle()');
 
-		let x, y;
+		// Draw the clusters
+		drawClusters(GV.map.getBounds(), GV.map.getZoom());
+	}
 
-		while (stack.length) {
-			const axis = stack.pop(),
-			right = stack.pop(),
-			left = stack.pop();
+	/**
+	 * remove idle listener
+	 */
+	function removeIdleListener() {
+		console.log('KnGmapClusterer.removeIdleListener()');
 
-			if (right - left <= GV.opt.nodeSize) {
-				for (let i = left; i <= right; i++) {
-					x = coords[2 * i];
-					y = coords[2 * i + 1];
-					if (x >= minX && x <= maxX && y >= minY && y <= maxY) result.push(ids[i]);
+		if(!GV.idle_listener) return;
+
+		GV.idle_listener.remove();
+		GV.idle_listener = null;
+	}
+
+	/**
+	 * draw clusters
+	 * @param bounds
+	 * @param zoom
+	 */
+	function drawClusters(bounds, zoom) {
+		console.log('KnGmapClusterer.drawClusters()', bounds, zoom);
+
+		const old_markers = new Map(GV.markers);
+		GV.markers.clear();
+
+		GV.kcluster.getClusters([bounds.getSouthWest().lng(), bounds.getSouthWest().lat(), bounds.getNorthEast().lng(), bounds.getNorthEast().lat()], zoom).forEach(c => {
+			console.log("KnGmapClusterer.drawClusters()", c);
+
+			if(c.cluster_id) {
+				if(old_markers.has('c' + c.cluster_id)) {
+					console.log('KnGmapClusterer.drawClusters() cluster already on map');
+					GV.markers.set('c' + c.cluster_id, old_markers.get('c' + c.cluster_id));
+					old_markers.delete('c' + c.cluster_id);
+					return;
 				}
 
-				continue;
-			}
-
-			const m = Math.floor((left + right) / 2);
-
-			x = coords[2 * m];
-			y = coords[2 * m + 1];
-
-			if (x >= minX && x <= maxX && y >= minY && y <= maxY) result.push(ids[m]);
-
-			const nextAxis = (axis + 1) % 2;
-
-			if (axis === 0 ? minX <= x : minY <= y) {
-				stack.push(left);
-				stack.push(m - 1);
-				stack.push(nextAxis);
-			}
-			if (axis === 0 ? maxX >= x : maxY >= y) {
-				stack.push(m + 1);
-				stack.push(right);
-				stack.push(nextAxis);
-			}
-		}
-
-		return result;
-	}
-
-	function sortKD(ids, coords, left, right, depth) {
-		if (right - left <= GV.opt.nodeSize) return;
-
-		const m = (left + right) >> 1;
-
-		select(ids, coords, m, left, right, depth % 2);
-
-		sortKD(ids, coords, left, m - 1, depth + 1);
-		sortKD(ids, coords, m + 1, right, depth + 1);
-	}
-
-	function select(ids, coords, k, left, right, inc) {
-		while (right > left) {
-			if (right - left > 600) {
-				const n = right - left + 1,
-				m = k - left + 1,
-				z = Math.log(n),
-				s = 0.5 * Math.exp(2 * z / 3),
-				sd = 0.5 * Math.sqrt(z * s * (n - s) / n) * (m - n / 2 < 0 ? -1 : 1),
-				newLeft = Math.max(left, Math.floor(k - m * s / n + sd)),
-				newRight = Math.min(right, Math.floor(k + (n - m) * s / n + sd));
-
-				select(ids, coords, k, newLeft, newRight, inc);
-			}
-
-			const t = coords[2 * k + inc];
-
-			let i = left,
-			j = right;
-
-			swapItem(ids, coords, left, k);
-			if (coords[2 * right + inc] > t) swapItem(ids, coords, left, right);
-
-			while (i < j) {
-				swapItem(ids, coords, i, j);
-				i++;
-				j--;
-				while (coords[2 * i + inc] < t) i++;
-				while (coords[2 * j + inc] > t) j--;
-			}
-
-			if (coords[2 * left + inc] === t) swapItem(ids, coords, left, j);
-			else {
-				j++;
-				swapItem(ids, coords, j, right);
-			}
-
-			if (j <= k) left = j + 1;
-			if (k <= j) right = j - 1;
-		}
-	}
-
-	function swapItem(ids, coords, i, j) {
-		swap(ids, i, j);
-		swap(coords, 2 * i, 2 * j);
-		swap(coords, 2 * i + 1, 2 * j + 1);
-	}
-
-	function swap(arr, i, j) {
-		const tmp = arr[i];
-		arr[i] = arr[j];
-		arr[j] = tmp;
-	}
-
-	function withinKD(ids, coords, qx, qy, r) {
-		const stack = [0, ids.length - 1, 0],
-		result = [],
-		r2 = r * r;
-
-		while (stack.length) {
-			const axis = stack.pop(),
-			right = stack.pop(),
-			left = stack.pop();
-
-			if (right - left <= GV.opt.nodeSize) {
-				for (let i = left; i <= right; i++) {
-					if (sqDist(coords[2 * i], coords[2 * i + 1], qx, qy) <= r2) result.push(ids[i]);
+				addClusterToMap(c);
+			} else {
+				if(old_markers.has('m' + c.id)) {
+					console.log('KnGmapClusterer.drawClusters() marker already on map');
+					GV.markers.set('m' + c.id, old_markers.get('m' + c.id));
+					old_markers.delete('m' + c.id);
+					return;
 				}
 
-				continue;
+				addMarkerToMap(c);
 			}
+		});
 
-			const m = Math.floor((left + right) / 2),
-			x = coords[2 * m],
-			y = coords[2 * m + 1];
-
-			if (sqDist(x, y, qx, qy) <= r2) result.push(ids[m]);
-
-			const nextAxis = (axis + 1) % 2;
-
-			if (axis === 0 ? qx - r <= x : qy - r <= y) {
-				stack.push(left);
-				stack.push(m - 1);
-				stack.push(nextAxis);
-			}
-			if (axis === 0 ? qx + r >= x : qy + r >= y) {
-				stack.push(m + 1);
-				stack.push(right);
-				stack.push(nextAxis);
-			}
-		}
-
-		return result;
+		old_markers.forEach(m => removeMarkerFromMap(m));
 	}
 
-	function sqDist(ax, ay, bx, by) {
-		const dx = ax - bx,
-		dy = ay - by;
+	/**
+	 * add cluster to map
+	 * @param c
+	 */
+	function addClusterToMap(c) {
+		console.log('KnGmapClusterer.addClusterToMap()', c);
 
-		return dx * dx + dy * dy;
+		const marker = new google.maps.Marker({
+			k_data: c,
+			map: GV.map,
+			icon: (typeof GV.opt.clusterIcon == 'function' ? GV.opt.clusterIcon(c) : GV.opt.clusterIcon) || null,
+			zIndex: Number(google.maps.Marker.MAX_ZINDEX) + c.nb_points,
+			position: { lat: c.y, lng: c.x },
+			label: {
+				text: String(c.nb_points_abbr),
+				color: GV.opt.clusterFontColor,
+				fontSize: GV.opt.clusterFontSize,
+				fontWeight: GV.opt.clusterFontWeight,
+				fontFamily: GV.opt.clusterFontFamily
+			}
+		});
+
+		if(GV.opt.clickToZoom) marker.k_click_listener = marker.addListener('click', onClusterClick);
+
+		GV.markers.set('c' + c.cluster_id, marker);
+	}
+
+	/**
+	 * on cluster click
+	 * @param e
+	 */
+	function onClusterClick(e) {
+		console.log('KnGmapClusterer.onClusterClick()', e);
+
+		e.stop();
+
+		GV.map.setOptions({
+			zoom: GV.kcluster.getClusterExpansionZoom(this.k_data.cluster_id),
+			center: this.getPosition()
+		});
+	}
+
+	/**
+	 * add marker to map
+	 * @param m
+	 */
+	function addMarkerToMap(m) {
+		console.log('KnGmapClusterer.addMarkerToMap()', m);
+
+		const positon = new google.maps.LatLng(m.y, m.x);
+
+		if(GV.opt.mergeDuplicates) {
+			for(const am of GV.markers) {
+				if(am[1].is_dup || !am[1].position.equals(positon)) continue;
+				console.log("KnGmapClusterer.addMarkerToMap() duplicate", m.id);
+
+				if(!am[1].duplicates) am[1].duplicates = [];
+				am[1].duplicates.push(m.id);
+
+				GV.markers.set('m' + m.id, {is_dup: 1, setMap: () => 1});
+				return;
+			}
+
+			console.log("KnGmapClusterer.addMarkerToMap() not a duplicate", m.id);
+		}
+
+		const marker = new google.maps.Marker({
+			k_data: m,
+			map: GV.map,
+			icon: (typeof GV.opt.markerIcon == 'function' ? GV.opt.markerIcon(m) : GV.opt.markerIcon) || null,
+			position: positon
+		});
+
+		if(m.label !== undefined) marker.setLabel({
+			text: String(m.label),
+			color: GV.opt.markerFontColor,
+			fontSize: GV.opt.markerFontSize,
+			fontWeight: GV.opt.markerFontWeight,
+			fontFamily: GV.opt.markerFontFamily
+		});
+
+		if(GV.opt.onMarkerClick) marker.k_click_listener = marker.addListener('click', GV.opt.onMarkerClick);
+
+		GV.markers.set('m' + m.id, marker);
+	}
+
+	/**
+	 * remove marker from map
+	 * @param m
+	 */
+	function removeMarkerFromMap(m) {
+		console.log('KnGmapClusterer.removeMarkerFromMap()', m);
+
+		if(m.k_click_listener) m.k_click_listener.remove();
+		m.setMap(null);
 	}
 
 	/*************************************************
-	 * PUBLIC METHODS
+	 * PUBLIC
 	 ************************************************/
 
-	return {
-		VERSION,
-		init,
-		setOptions,
-		load,
-		getMarkers,
-		clearMarkers,
-		getBoundsZoomLevel
+	/**
+	 * set options
+	 * @param opt
+	 */
+	this.setOptions = function(opt) {
+		console.log('KnGmapClusterer.setOptions()', opt);
+
+		GV.opt.mergeDuplicates = opt.mergeDuplicates || GV.opt.mergeDuplicates;
+		GV.opt.clickToZoom = opt.clickToZoom || GV.opt.clickToZoom;
+		GV.opt.clusterIcon = opt.clusterIcon || GV.opt.clusterIcon;
+		GV.opt.clusterFontColor = opt.clusterFontColor || GV.opt.clusterFontColor;
+		GV.opt.clusterFontSize = opt.clusterFontSize || GV.opt.clusterFontSize;
+		GV.opt.clusterFontFamily = opt.clusterFontFamily || GV.opt.clusterFontFamily;
+		GV.opt.clusterFontWeight = opt.clusterFontWeight || GV.opt.clusterFontWeight;
+		GV.opt.markerFontColor = opt.markerFontColor || GV.opt.markerFontColor;
+		GV.opt.markerFontSize = opt.markerFontSize || GV.opt.markerFontSize;
+		GV.opt.markerFontFamily = opt.markerFontFamily || GV.opt.markerFontFamily;
+		GV.opt.markerFontWeight = opt.markerFontWeight || GV.opt.markerFontWeight;
+		GV.opt.markerIcon = opt.markerIcon || GV.opt.markerIcon;
+		GV.opt.onMarkerClick = opt.onMarkerClick || GV.opt.onMarkerClick;
 	}
-}();
+
+	/**
+	 * load points
+	 * @param points
+	 */
+	this.load = function(points) {
+		console.log('KnGmapClusterer.load()');
+
+		// Clear markers
+		mThis.clearMarkers();
+
+		// Min one point
+		if(points.length > 0) {
+			// Markers bounds
+			const bounds = new google.maps.LatLngBounds();
+			points.forEach(p => bounds.extend({lat: p.y, lng: p.x}));
+
+			// Fit map to bounds
+			GV.map.setOptions({
+				zoom: mThis.getBoundsZoomLevel(bounds),
+				center: bounds.getCenter()
+			});
+
+			// Load points into supercluster
+			GV.kcluster.load(points);
+		}
+
+		// Add the idle listener => drawClusters
+		addIdleListener();
+	}
+
+	/**
+	 * get markers
+	 * @return array
+	 */
+	this.getMarkers = function() {
+		console.log('KnGmapClusterer.getMarkers()');
+
+		return GV.markers;
+	}
+
+	/**
+	 * clear markers
+	 */
+	this.clearMarkers = function() {
+		console.log('KnGmapClusterer.clearMarkers()');
+
+		removeIdleListener();
+		GV.markers.forEach(m => removeMarkerFromMap(m));
+		GV.markers.clear();
+	}
+
+	/**
+	 * get bounds zoom level
+	 * @param bounds
+	 * @return int
+	 */
+	this.getBoundsZoomLevel = function(bounds) {
+		function _latRad(lat) {
+			const sin = Math.sin(lat * Math.PI / 180),
+			rad_x2 = Math.log((1 + sin) / (1 - sin)) / 2;
+
+			return Math.max(Math.min(rad_x2, Math.PI), -Math.PI) / 2;
+		}
+
+		function _zoom(map_px, world_px, fraction) {
+			return Math.floor(Math.log(map_px / world_px / fraction) / Math.LN2);
+		}
+
+		const ne = bounds.getNorthEast(),
+		sw = bounds.getSouthWest(),
+		lat_fraction = (_latRad(ne.lat()) - _latRad(sw.lat())) / Math.PI,
+		lng_diff = ne.lng() - sw.lng(),
+		lng_fraction = ((lng_diff < 0) ? (lng_diff + 360) : lng_diff) / 360;
+
+		return Math.min(
+			_zoom(GV.map.getDiv().offsetHeight, 256, lat_fraction),
+			_zoom(GV.map.getDiv().offsetWidth, 256, lng_fraction),
+			17
+		);
+	}
+};
+
+KnGmapClusterer.VERSION = '3.0.0';
