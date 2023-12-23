@@ -1,5 +1,5 @@
 /**
- * KnGmapClusterer v3.0.0 (2023-03-21 22:22:57 +0100)
+ * KnGmapClusterer v4.0.0 (2023-12-23 12:10:52 +0100)
  * Copyright (c) 2021 - 2023 Florent VIALATTE
  * Released under the MIT license
  */
@@ -17,122 +17,261 @@ const KnGmapClusterer = function(map, opt) {
 	const mThis = this;
 
 	/************************************************************
-	 * Custom version of github.com/mourner/kdbush v3.0.0
+	 * github.com/mourner/kdbush v4.0.0
 	 ***********************************************************/
 
+	const ARRAY_TYPES = [
+		Int8Array, Uint8Array, Uint8ClampedArray, Int16Array, Uint16Array,
+		Int32Array, Uint32Array, Float32Array, Float64Array
+	],
+	VERSION = 1, // serialized format version
+	HEADER_SIZE = 8;
+
 	class KDBush {
-		constructor(points) {
-			this.points = points;
+		/**
+		 * Creates an index that will hold a given number of items.
+		 * @param {number} numItems
+		 * @param {number} [nodeSize=64] Size of the KD-tree node (64 by default).
+		 * @param {TypedArrayConstructor} [ArrayType=Float64Array] The array type used for coordinates storage (`Float64Array` by default).
+		 * @param {ArrayBuffer} [data] (For internal use only)
+		 */
+		constructor(numItems, nodeSize = 64, ArrayType = Float64Array, data) {
+			if (isNaN(numItems) || numItems <= 0) throw new Error(`Unpexpected numItems value: ${numItems}.`);
 
-			const IndexArrayType = points.length < 65536 ? Uint16Array : Uint32Array,
-			ids = this.ids = new IndexArrayType(points.length),
-			coords = this.coords = new Float32Array(points.length * 2);
+			this.numItems = +numItems;
+			this.nodeSize = Math.min(Math.max(+nodeSize, 2), 65535);
+			this.ArrayType = ArrayType;
+			this.IndexArrayType = numItems < 65536 ? Uint16Array : Uint32Array;
 
-			for (let i = 0; i < points.length; i++) {
-				ids[i] = i;
-				coords[2 * i] = points[i].x;
-				coords[2 * i + 1] = points[i].y;
+			const arrayTypeIndex = ARRAY_TYPES.indexOf(this.ArrayType);
+			const coordsByteSize = numItems * 2 * this.ArrayType.BYTES_PER_ELEMENT;
+			const idsByteSize = numItems * this.IndexArrayType.BYTES_PER_ELEMENT;
+			const padCoords = (8 - idsByteSize % 8) % 8;
+
+			if (arrayTypeIndex < 0) {
+				throw new Error(`Unexpected typed array class: ${ArrayType}.`);
 			}
 
-			sortKD(ids, coords, 0, ids.length - 1, 0);
+			if (data && (data instanceof ArrayBuffer)) { // reconstruct an index from a buffer
+				this.data = data;
+				this.ids = new this.IndexArrayType(this.data, HEADER_SIZE, numItems);
+				this.coords = new this.ArrayType(this.data, HEADER_SIZE + idsByteSize + padCoords, numItems * 2);
+				this._pos = numItems * 2;
+				this._finished = true;
+			} else { // initialize a new index
+				this.data = new ArrayBuffer(HEADER_SIZE + coordsByteSize + idsByteSize + padCoords);
+				this.ids = new this.IndexArrayType(this.data, HEADER_SIZE, numItems);
+				this.coords = new this.ArrayType(this.data, HEADER_SIZE + idsByteSize + padCoords, numItems * 2);
+				this._pos = 0;
+				this._finished = false;
+
+				// set header
+				new Uint8Array(this.data, 0, 2).set([0xdb, (VERSION << 4) + arrayTypeIndex]);
+				new Uint16Array(this.data, 2, 1)[0] = nodeSize;
+				new Uint32Array(this.data, 4, 1)[0] = numItems;
+			}
 		}
 
+		/**
+		 * Add a point to the index.
+		 * @param {number} x
+		 * @param {number} y
+		 * @returns {number} An incremental index associated with the added item (starting from `0`).
+		 */
+		add(x, y) {
+			const index = this._pos >> 1;
+			this.ids[index] = index;
+			this.coords[this._pos++] = x;
+			this.coords[this._pos++] = y;
+			return index;
+		}
+
+		/**
+		 * Perform indexing of the added points.
+		 */
+		finish() {
+			const numAdded = this._pos >> 1;
+			if (numAdded !== this.numItems) {
+				throw new Error(`Added ${numAdded} items when expected ${this.numItems}.`);
+			}
+			// kd-sort both arrays for efficient search
+			sort(this.ids, this.coords, this.nodeSize, 0, this.numItems - 1, 0);
+
+			this._finished = true;
+			return this;
+		}
+
+		/**
+		 * Search the index for items within a given bounding box.
+		 * @param {number} minX
+		 * @param {number} minY
+		 * @param {number} maxX
+		 * @param {number} maxY
+		 * @returns {number[]} An array of indices correponding to the found items.
+		 */
 		range(minX, minY, maxX, maxY) {
-			return rangeKD(this.ids, this.coords, minX, minY, maxX, maxY);
-		}
+			if (!this._finished) throw new Error('Data not yet indexed - call index.finish().');
 
-		within(x, y, r) {
-			return withinKD(this.ids, this.coords, x, y, r);
-		}
-	}
+			const {ids, coords, nodeSize} = this;
+			const stack = [0, ids.length - 1, 0];
+			const result = [];
 
-	function rangeKD(ids, coords, minX, minY, maxX, maxY) {
-		const stack = [0, ids.length - 1, 0],
-		result = [];
+			// recursively search for items in range in the kd-sorted arrays
+			while (stack.length) {
+				const axis = stack.pop() || 0;
+				const right = stack.pop() || 0;
+				const left = stack.pop() || 0;
 
-		let x, y;
-
-		while (stack.length) {
-			const axis = stack.pop(),
-			right = stack.pop(),
-			left = stack.pop();
-
-			if (right - left <= GV.opt.nodeSize) {
-				for (let i = left; i <= right; i++) {
-					x = coords[2 * i];
-					y = coords[2 * i + 1];
-					if (x >= minX && x <= maxX && y >= minY && y <= maxY) result.push(ids[i]);
+				// if we reached "tree node", search linearly
+				if (right - left <= nodeSize) {
+					for (let i = left; i <= right; i++) {
+						const x = coords[2 * i];
+						const y = coords[2 * i + 1];
+						if (x >= minX && x <= maxX && y >= minY && y <= maxY) result.push(ids[i]);
+					}
+					continue;
 				}
 
-				continue;
+				// otherwise find the middle index
+				const m = (left + right) >> 1;
+
+				// include the middle item if it's in range
+				const x = coords[2 * m];
+				const y = coords[2 * m + 1];
+				if (x >= minX && x <= maxX && y >= minY && y <= maxY) result.push(ids[m]);
+
+				// queue search in halves that intersect the query
+				if (axis === 0 ? minX <= x : minY <= y) {
+					stack.push(left);
+					stack.push(m - 1);
+					stack.push(1 - axis);
+				}
+				if (axis === 0 ? maxX >= x : maxY >= y) {
+					stack.push(m + 1);
+					stack.push(right);
+					stack.push(1 - axis);
+				}
 			}
 
-			const m = Math.floor((left + right) / 2);
-
-			x = coords[2 * m];
-			y = coords[2 * m + 1];
-
-			if (x >= minX && x <= maxX && y >= minY && y <= maxY) result.push(ids[m]);
-
-			const nextAxis = (axis + 1) % 2;
-
-			if (axis === 0 ? minX <= x : minY <= y) {
-				stack.push(left);
-				stack.push(m - 1);
-				stack.push(nextAxis);
-			}
-			if (axis === 0 ? maxX >= x : maxY >= y) {
-				stack.push(m + 1);
-				stack.push(right);
-				stack.push(nextAxis);
-			}
+			return result;
 		}
 
-		return result;
-	}
+		/**
+		 * Search the index for items within a given radius.
+		 * @param {number} qx
+		 * @param {number} qy
+		 * @param {number} r Query radius.
+		 * @returns {number[]} An array of indices correponding to the found items.
+		 */
+		within(qx, qy, r) {
+			if (!this._finished) throw new Error('Data not yet indexed - call index.finish().');
 
-	function sortKD(ids, coords, left, right, depth) {
-		if (right - left <= GV.opt.nodeSize) return;
+			const {ids, coords, nodeSize} = this;
+			const stack = [0, ids.length - 1, 0];
+			const result = [];
+			const r2 = r * r;
 
-		const m = (left + right) >> 1;
+			// recursively search for items within radius in the kd-sorted arrays
+			while (stack.length) {
+				const axis = stack.pop() || 0;
+				const right = stack.pop() || 0;
+				const left = stack.pop() || 0;
 
-		select(ids, coords, m, left, right, depth % 2);
+				// if we reached "tree node", search linearly
+				if (right - left <= nodeSize) {
+					for (let i = left; i <= right; i++) {
+						if (sqDist(coords[2 * i], coords[2 * i + 1], qx, qy) <= r2) result.push(ids[i]);
+					}
+					continue;
+				}
 
-		sortKD(ids, coords, left, m - 1, depth + 1);
-		sortKD(ids, coords, m + 1, right, depth + 1);
-	}
+				// otherwise find the middle index
+				const m = (left + right) >> 1;
 
-	function select(ids, coords, k, left, right, inc) {
-		while (right > left) {
-			if (right - left > 600) {
-				const n = right - left + 1,
-				m = k - left + 1,
-				z = Math.log(n),
-				s = 0.5 * Math.exp(2 * z / 3),
-				sd = 0.5 * Math.sqrt(z * s * (n - s) / n) * (m - n / 2 < 0 ? -1 : 1),
-				newLeft = Math.max(left, Math.floor(k - m * s / n + sd)),
-				newRight = Math.min(right, Math.floor(k + (n - m) * s / n + sd));
+				// include the middle item if it's in range
+				const x = coords[2 * m];
+				const y = coords[2 * m + 1];
+				if (sqDist(x, y, qx, qy) <= r2) result.push(ids[m]);
 
-				select(ids, coords, k, newLeft, newRight, inc);
+				// queue search in halves that intersect the query
+				if (axis === 0 ? qx - r <= x : qy - r <= y) {
+					stack.push(left);
+					stack.push(m - 1);
+					stack.push(1 - axis);
+				}
+				if (axis === 0 ? qx + r >= x : qy + r >= y) {
+					stack.push(m + 1);
+					stack.push(right);
+					stack.push(1 - axis);
+				}
 			}
 
-			const t = coords[2 * k + inc];
+			return result;
+		}
+	}
 
-			let i = left,
-			j = right;
+	/**
+	 * @param {Uint16Array | Uint32Array} ids
+	 * @param {InstanceType<TypedArrayConstructor>} coords
+	 * @param {number} nodeSize
+	 * @param {number} left
+	 * @param {number} right
+	 * @param {number} axis
+	 */
+	function sort(ids, coords, nodeSize, left, right, axis) {
+		if (right - left <= nodeSize) return;
+
+		const m = (left + right) >> 1; // middle index
+
+		// sort ids and coords around the middle index so that the halves lie
+		// either left/right or top/bottom correspondingly (taking turns)
+		select(ids, coords, m, left, right, axis);
+
+		// recursively kd-sort first half and second half on the opposite axis
+		sort(ids, coords, nodeSize, left, m - 1, 1 - axis);
+		sort(ids, coords, nodeSize, m + 1, right, 1 - axis);
+	}
+
+	/**
+	 * Custom Floyd-Rivest selection algorithm: sort ids and coords so that
+	 * [left..k-1] items are smaller than k-th item (on either x or y axis)
+	 * @param {Uint16Array | Uint32Array} ids
+	 * @param {InstanceType<TypedArrayConstructor>} coords
+	 * @param {number} k
+	 * @param {number} left
+	 * @param {number} right
+	 * @param {number} axis
+	 */
+	function select(ids, coords, k, left, right, axis) {
+
+		while (right > left) {
+			if (right - left > 600) {
+				const n = right - left + 1;
+				const m = k - left + 1;
+				const z = Math.log(n);
+				const s = 0.5 * Math.exp(2 * z / 3);
+				const sd = 0.5 * Math.sqrt(z * s * (n - s) / n) * (m - n / 2 < 0 ? -1 : 1);
+				const newLeft = Math.max(left, Math.floor(k - m * s / n + sd));
+				const newRight = Math.min(right, Math.floor(k + (n - m) * s / n + sd));
+				select(ids, coords, k, newLeft, newRight, axis);
+			}
+
+			const t = coords[2 * k + axis];
+			let i = left;
+			let j = right;
 
 			swapItem(ids, coords, left, k);
-			if (coords[2 * right + inc] > t) swapItem(ids, coords, left, right);
+			if (coords[2 * right + axis] > t) swapItem(ids, coords, left, right);
 
 			while (i < j) {
 				swapItem(ids, coords, i, j);
 				i++;
 				j--;
-				while (coords[2 * i + inc] < t) i++;
-				while (coords[2 * j + inc] > t) j--;
+				while (coords[2 * i + axis] < t) i++;
+				while (coords[2 * j + axis] > t) j--;
 			}
 
-			if (coords[2 * left + inc] === t) swapItem(ids, coords, left, j);
+			if (coords[2 * left + axis] === t) swapItem(ids, coords, left, j);
 			else {
 				j++;
 				swapItem(ids, coords, j, right);
@@ -143,68 +282,43 @@ const KnGmapClusterer = function(map, opt) {
 		}
 	}
 
+	/**
+	 * @param {Uint16Array | Uint32Array} ids
+	 * @param {InstanceType<TypedArrayConstructor>} coords
+	 * @param {number} i
+	 * @param {number} j
+	 */
 	function swapItem(ids, coords, i, j) {
 		swap(ids, i, j);
 		swap(coords, 2 * i, 2 * j);
 		swap(coords, 2 * i + 1, 2 * j + 1);
 	}
 
+	/**
+	 * @param {InstanceType<TypedArrayConstructor>} arr
+	 * @param {number} i
+	 * @param {number} j
+	 */
 	function swap(arr, i, j) {
 		const tmp = arr[i];
 		arr[i] = arr[j];
 		arr[j] = tmp;
 	}
 
-	function withinKD(ids, coords, qx, qy, r) {
-		const stack = [0, ids.length - 1, 0],
-		result = [],
-		r2 = r * r;
-
-		while (stack.length) {
-			const axis = stack.pop(),
-			right = stack.pop(),
-			left = stack.pop();
-
-			if (right - left <= GV.opt.nodeSize) {
-				for (let i = left; i <= right; i++) {
-					if (sqDist(coords[2 * i], coords[2 * i + 1], qx, qy) <= r2) result.push(ids[i]);
-				}
-
-				continue;
-			}
-
-			const m = Math.floor((left + right) / 2),
-			x = coords[2 * m],
-			y = coords[2 * m + 1];
-
-			if (sqDist(x, y, qx, qy) <= r2) result.push(ids[m]);
-
-			const nextAxis = (axis + 1) % 2;
-
-			if (axis === 0 ? qx - r <= x : qy - r <= y) {
-				stack.push(left);
-				stack.push(m - 1);
-				stack.push(nextAxis);
-			}
-			if (axis === 0 ? qx + r >= x : qy + r >= y) {
-				stack.push(m + 1);
-				stack.push(right);
-				stack.push(nextAxis);
-			}
-		}
-
-		return result;
-	}
-
+	/**
+	 * @param {number} ax
+	 * @param {number} ay
+	 * @param {number} bx
+	 * @param {number} by
+	 */
 	function sqDist(ax, ay, bx, by) {
-		const dx = ax - bx,
-		dy = ay - by;
-
+		const dx = ax - bx;
+		const dy = ay - by;
 		return dx * dx + dy * dy;
 	}
 
 	/************************************************************
-	 * Custom version of github.com/mapbox/supercluster v7.1.5
+	 * Custom version of github.com/mapbox/supercluster v8.0.1
 	 ***********************************************************/
 
 	class kCluster {
@@ -217,11 +331,11 @@ const KnGmapClusterer = function(map, opt) {
 
 			let clusters = [];
 			points.forEach((p, i) => clusters.push(createPointCluster(p, i)));
-			this.trees[GV.opt.maxZoom + 1] = new KDBush(clusters);
+			this.trees[GV.opt.maxZoom + 1] = this._createTree(clusters);
 
 			for (let z = GV.opt.maxZoom; z >= GV.opt.minZoom; z--) {
 				clusters = this._cluster(clusters, z);
-				this.trees[z] = new KDBush(clusters);
+				this.trees[z] = this._createTree(clusters);
 			}
 
 			return this;
@@ -248,7 +362,7 @@ const KnGmapClusterer = function(map, opt) {
 			clusters = [];
 
 			tree.range(lngX(minLng), latY(maxLat), lngX(maxLng), latY(minLat)).forEach(id => {
-				const c = tree.points[id];
+				const c = tree.data[id];
 				clusters.push(c.numPoints ? getClusterJSON(c) : this.points[c.index]);
 			});
 
@@ -263,14 +377,14 @@ const KnGmapClusterer = function(map, opt) {
 			const index = this.trees[originZoom];
 			if (!index) throw new Error(errorMsg);
 
-			const origin = index.points[originId];
+			const origin = index.data[originId];
 			if (!origin) throw new Error(errorMsg);
 
 			const r = GV.opt.radius / (GV.opt.extent * Math.pow(2, originZoom - 1)),
 			children = [];
 
 			index.within(origin.x, origin.y, r).forEach(id => {
-				const c = index.points[id];
+				const c = index.data[id];
 				if(c.parentId === clusterId) children.push(c.numPoints ? getClusterJSON(c) : this.points[c.index]);
 			});
 
@@ -292,6 +406,14 @@ const KnGmapClusterer = function(map, opt) {
 			return expansionZoom;
 		}
 
+		_createTree(data) {
+			const tree = new KDBush(data.length, GV.opt.nodeSize, Float32Array);
+			data.forEach(d => tree.add(d.x, d.y));
+			tree.finish();
+			tree.data = data;
+			return tree;
+		}
+
 		_limitZoom(z) {
 			return Math.max(GV.opt.minZoom, Math.min(Math.floor(+z), GV.opt.maxZoom + 1));
 		}
@@ -311,7 +433,7 @@ const KnGmapClusterer = function(map, opt) {
 				let numPoints = numPointsOrigin;
 
 				neighborIds.forEach(neighborId => {
-					const b = tree.points[neighborId];
+					const b = tree.data[neighborId];
 					if (b.zoom > zoom) numPoints += b.numPoints || 1;
 				});
 
@@ -322,7 +444,7 @@ const KnGmapClusterer = function(map, opt) {
 					const id = (i << 5) + (zoom + 1) + this.points.length;
 
 					neighborIds.forEach(neighborId => {
-						const b = tree.points[neighborId];
+						const b = tree.data[neighborId];
 
 						if (b.zoom <= zoom) return;
 						b.zoom = zoom;
@@ -341,7 +463,7 @@ const KnGmapClusterer = function(map, opt) {
 
 					if (numPoints > 1) {
 						neighborIds.forEach(neighborId => {
-							const b = tree.points[neighborId];
+							const b = tree.data[neighborId];
 							if (b.zoom <= zoom) return;
 							b.zoom = zoom;
 							clusters.push(b);
@@ -362,12 +484,10 @@ const KnGmapClusterer = function(map, opt) {
 		}
 	}
 
-	const fround = Math.fround || (tmp => ((x) => { tmp[0] = +x; return tmp[0]; }))(new Float32Array(1));
-
 	function createCluster(x, y, id, numPoints) {
 		return {
-			x: fround(x),
-			y: fround(y),
+			x: Math.fround(x),
+			y: Math.fround(y),
 			zoom: Infinity,
 			id,
 			parentId: -1,
@@ -377,8 +497,8 @@ const KnGmapClusterer = function(map, opt) {
 
 	function createPointCluster(p, id) {
 		return {
-			x: fround(lngX(p.x)),
-			y: fround(latY(p.y)),
+			x: Math.fround(lngX(p.x)),
+			y: Math.fround(latY(p.y)),
 			zoom: Infinity,
 			index: id,
 			parentId: -1
@@ -423,32 +543,30 @@ const KnGmapClusterer = function(map, opt) {
 	 * PRIVATE
 	 ************************************************/
 
-	// Default opts
-	if(!opt) opt = {};
-	if(!opt.minZoom) opt.minZoom = 0; // min zoom to generate clusters on
-	if(!opt.maxZoom) opt.maxZoom = 17; // max zoom level to cluster the points on
-	if(!opt.minPoints) opt.minPoints = 2; // minimum points to form a cluster
-	if(!opt.radius) opt.radius = 256; // cluster radius in pixels
-	if(!opt.extent) opt.extent = 512; // tile extent (radius is calculated relative to it)
-	if(!opt.nodeSize) opt.nodeSize = 64; // size of the KD-tree leaf node, affects performance
-	if(!opt.mergeDuplicates) opt.mergeDuplicates = false;
-	if(!opt.clickToZoom) opt.clickToZoom = true;
-	if(!opt.clusterIcon) opt.clusterIcon = null;
-	if(!opt.clusterFontColor) opt.clusterFontColor = '#000';
-	if(!opt.clusterFontSize) opt.clusterFontSize = '12px';
-	if(!opt.clusterFontFamily) opt.clusterFontFamily = 'sans-serif';
-	if(!opt.clusterFontWeight) opt.clusterFontWeight = 'normal';
-	if(!opt.markerFontColor) opt.markerFontColor = '#000';
-	if(!opt.markerFontSize) opt.markerFontSize = '12px';
-	if(!opt.markerFontFamily) opt.markerFontFamily = 'sans-serif';
-	if(!opt.markerFontWeight) opt.markerFontWeight = 'normal';
-	if(!opt.markerIcon) opt.markerIcon = null;
-	if(!opt.onMarkerClick) opt.onMarkerClick = null;
-
 	// Global vars
 	const GV = {};
 	GV.map = map;
-	GV.opt = opt;
+	GV.opt = Object.assign({
+		minZoom: 0, // min zoom to generate clusters on
+		maxZoom: 17, // max zoom level to cluster the points on
+		minPoints: 2, // minimum points to form a cluster
+		radius: 256, // cluster radius in pixels
+		extent: 512, // tile extent (radius is calculated relative to it)
+		nodeSize: 64, // size of the KD-tree leaf node, affects performance
+		mergeDuplicates: false,
+		clickToZoom: true,
+		clusterIcon: null,
+		clusterFontColor: '#000',
+		clusterFontSize: '12px',
+		clusterFontFamily: 'sans-serif',
+		clusterFontWeight: 'normal',
+		markerFontColor: '#000',
+		markerFontSize: '12px',
+		markerFontFamily: 'sans-serif',
+		markerFontWeight: 'normal',
+		markerIcon: null,
+		onMarkerClick: null
+	}, opt || {});
 	GV.markers = new Map();
 	GV.kcluster = new kCluster();
 
@@ -629,19 +747,7 @@ const KnGmapClusterer = function(map, opt) {
 	this.setOptions = function(opt) {
 		console.log('KnGmapClusterer.setOptions()', opt);
 
-		GV.opt.mergeDuplicates = opt.mergeDuplicates || GV.opt.mergeDuplicates;
-		GV.opt.clickToZoom = opt.clickToZoom || GV.opt.clickToZoom;
-		GV.opt.clusterIcon = opt.clusterIcon || GV.opt.clusterIcon;
-		GV.opt.clusterFontColor = opt.clusterFontColor || GV.opt.clusterFontColor;
-		GV.opt.clusterFontSize = opt.clusterFontSize || GV.opt.clusterFontSize;
-		GV.opt.clusterFontFamily = opt.clusterFontFamily || GV.opt.clusterFontFamily;
-		GV.opt.clusterFontWeight = opt.clusterFontWeight || GV.opt.clusterFontWeight;
-		GV.opt.markerFontColor = opt.markerFontColor || GV.opt.markerFontColor;
-		GV.opt.markerFontSize = opt.markerFontSize || GV.opt.markerFontSize;
-		GV.opt.markerFontFamily = opt.markerFontFamily || GV.opt.markerFontFamily;
-		GV.opt.markerFontWeight = opt.markerFontWeight || GV.opt.markerFontWeight;
-		GV.opt.markerIcon = opt.markerIcon || GV.opt.markerIcon;
-		GV.opt.onMarkerClick = opt.onMarkerClick || GV.opt.onMarkerClick;
+		GV.opt = Object.assign(GV.opt || {}, opt || {});
 	}
 
 	/**
@@ -726,4 +832,4 @@ const KnGmapClusterer = function(map, opt) {
 	}
 };
 
-KnGmapClusterer.VERSION = '3.0.0';
+KnGmapClusterer.VERSION = '4.0.0';

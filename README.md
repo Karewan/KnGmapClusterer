@@ -15,6 +15,23 @@ See the changelog [here](CHANGELOG.md)
 	```javascript
 	// Create an instance
 	let instance = new KnGmapClusterer(gmapInstance, opt);
+
+	// Load data array
+	// (each object must have x and y properties at least)
+	// (custom properties allowed)
+	instance.load(points);
+
+	// Return all markers
+	instance.getMarkers();
+
+	// Clear all markers from the map (and the clusters)
+	instance.clearMarkers();
+
+	// Overwrite instance option
+	instance.setOptions(opt);
+
+	// Get zoom level for bounds
+	instance.getBoundsZoomLevel(bounds);
 	```
 
 * Properties
