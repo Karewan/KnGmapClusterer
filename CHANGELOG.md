@@ -1,6 +1,10 @@
 KnGmapClusterer Changelog
 ==========
 
+4.0.1 (Not released):
+----------------------------
+* Miscellaneous fixes and improvements
+
 4.0.0 (2023-12-23):
 ----------------------------
 * Reduced memory footprint

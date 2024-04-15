@@ -12,7 +12,7 @@ const KnGmapClusterer = function(map, opt) {
 	const mThis = this;
 
 	/************************************************************
-	 * github.com/mourner/kdbush v4.0.0
+	 * github.com/mourner/kdbush v4.0.2
 	 ***********************************************************/
 
 	const ARRAY_TYPES = [
@@ -31,7 +31,7 @@ const KnGmapClusterer = function(map, opt) {
 		 * @param {ArrayBuffer} [data] (For internal use only)
 		 */
 		constructor(numItems, nodeSize = 64, ArrayType = Float64Array, data) {
-			if (isNaN(numItems) || numItems <= 0) throw new Error(`Unpexpected numItems value: ${numItems}.`);
+			if (isNaN(numItems) || numItems < 0) throw new Error(`Unexpected numItems value: ${numItems}.`);
 
 			this.numItems = +numItems;
 			this.nodeSize = Math.min(Math.max(+nodeSize, 2), 65535);
@@ -827,4 +827,4 @@ const KnGmapClusterer = function(map, opt) {
 	}
 };
 
-KnGmapClusterer.VERSION = '4.0.0';
+KnGmapClusterer.VERSION = '4.0.1';
