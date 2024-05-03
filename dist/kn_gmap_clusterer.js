@@ -1,6 +1,6 @@
 /**
- * KnGmapClusterer v4.0.0 (2023-12-23 12:10:52 +0100)
- * Copyright (c) 2021 - 2023 Florent VIALATTE
+ * KnGmapClusterer v4.0.1 (2024-05-03 21:07:32 +0200)
+ * Copyright (c) 2021 - 2024 Florent VIALATTE
  * Released under the MIT license
  */
 'use strict';
@@ -17,7 +17,7 @@ const KnGmapClusterer = function(map, opt) {
 	const mThis = this;
 
 	/************************************************************
-	 * github.com/mourner/kdbush v4.0.0
+	 * github.com/mourner/kdbush v4.0.2
 	 ***********************************************************/
 
 	const ARRAY_TYPES = [
@@ -36,7 +36,7 @@ const KnGmapClusterer = function(map, opt) {
 		 * @param {ArrayBuffer} [data] (For internal use only)
 		 */
 		constructor(numItems, nodeSize = 64, ArrayType = Float64Array, data) {
-			if (isNaN(numItems) || numItems <= 0) throw new Error(`Unpexpected numItems value: ${numItems}.`);
+			if (isNaN(numItems) || numItems < 0) throw new Error(`Unexpected numItems value: ${numItems}.`);
 
 			this.numItems = +numItems;
 			this.nodeSize = Math.min(Math.max(+nodeSize, 2), 65535);
@@ -647,7 +647,7 @@ const KnGmapClusterer = function(map, opt) {
 		console.log('KnGmapClusterer.addClusterToMap()', c);
 
 		const marker = new google.maps.Marker({
-			k_data: c,
+			kData: c,
 			map: GV.map,
 			icon: (typeof GV.opt.clusterIcon == 'function' ? GV.opt.clusterIcon(c) : GV.opt.clusterIcon) || null,
 			zIndex: Number(google.maps.Marker.MAX_ZINDEX) + c.nb_points,
@@ -676,7 +676,7 @@ const KnGmapClusterer = function(map, opt) {
 		e.stop();
 
 		GV.map.setOptions({
-			zoom: GV.kcluster.getClusterExpansionZoom(this.k_data.cluster_id),
+			zoom: GV.kcluster.getClusterExpansionZoom(this.kData.cluster_id),
 			center: this.getPosition()
 		});
 	}
@@ -706,7 +706,7 @@ const KnGmapClusterer = function(map, opt) {
 		}
 
 		const marker = new google.maps.Marker({
-			k_data: m,
+			kData: m,
 			map: GV.map,
 			icon: (typeof GV.opt.markerIcon == 'function' ? GV.opt.markerIcon(m) : GV.opt.markerIcon) || null,
 			position: positon
@@ -832,4 +832,4 @@ const KnGmapClusterer = function(map, opt) {
 	}
 };
 
-KnGmapClusterer.VERSION = '4.0.0';
+KnGmapClusterer.VERSION = '4.0.1';

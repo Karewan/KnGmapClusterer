@@ -642,7 +642,7 @@ const KnGmapClusterer = function(map, opt) {
 		console.log('KnGmapClusterer.addClusterToMap()', c);
 
 		const marker = new google.maps.Marker({
-			k_data: c,
+			kData: c,
 			map: GV.map,
 			icon: (typeof GV.opt.clusterIcon == 'function' ? GV.opt.clusterIcon(c) : GV.opt.clusterIcon) || null,
 			zIndex: Number(google.maps.Marker.MAX_ZINDEX) + c.nb_points,
@@ -671,7 +671,7 @@ const KnGmapClusterer = function(map, opt) {
 		e.stop();
 
 		GV.map.setOptions({
-			zoom: GV.kcluster.getClusterExpansionZoom(this.k_data.cluster_id),
+			zoom: GV.kcluster.getClusterExpansionZoom(this.kData.cluster_id),
 			center: this.getPosition()
 		});
 	}
@@ -701,7 +701,7 @@ const KnGmapClusterer = function(map, opt) {
 		}
 
 		const marker = new google.maps.Marker({
-			k_data: m,
+			kData: m,
 			map: GV.map,
 			icon: (typeof GV.opt.markerIcon == 'function' ? GV.opt.markerIcon(m) : GV.opt.markerIcon) || null,
 			position: positon

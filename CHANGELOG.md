@@ -1,8 +1,9 @@
 KnGmapClusterer Changelog
 ==========
 
-4.0.1 (Not released):
+4.0.1 (2024-05-03):
 ----------------------------
+* Breaking change: k_data renamed kData
 * Miscellaneous fixes and improvements
 
 4.0.0 (2023-12-23):
