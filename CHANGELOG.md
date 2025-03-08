@@ -1,6 +1,10 @@
 KnGmapClusterer Changelog
 ==========
 
+4.0.2 (2025-03-08):
+----------------------------
+* Added autoCenterZoom paramater to the load method
+
 4.0.1 (2024-05-03):
 ----------------------------
 * Breaking change: k_data renamed kData

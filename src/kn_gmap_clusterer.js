@@ -6,7 +6,7 @@
  * @param opt
  * @returns KnGmapClusterer
  */
-const KnGmapClusterer = function(map, opt) {
+const KnGmapClusterer = function (map, opt) {
 	console.log('KnGmapClusterer()');
 
 	const mThis = this;
@@ -19,8 +19,8 @@ const KnGmapClusterer = function(map, opt) {
 		Int8Array, Uint8Array, Uint8ClampedArray, Int16Array, Uint16Array,
 		Int32Array, Uint32Array, Float32Array, Float64Array
 	],
-	VERSION = 1, // serialized format version
-	HEADER_SIZE = 8;
+		VERSION = 1, // serialized format version
+		HEADER_SIZE = 8;
 
 	class KDBush {
 		/**
@@ -107,7 +107,7 @@ const KnGmapClusterer = function(map, opt) {
 		range(minX, minY, maxX, maxY) {
 			if (!this._finished) throw new Error('Data not yet indexed - call index.finish().');
 
-			const {ids, coords, nodeSize} = this;
+			const { ids, coords, nodeSize } = this;
 			const stack = [0, ids.length - 1, 0];
 			const result = [];
 
@@ -161,7 +161,7 @@ const KnGmapClusterer = function(map, opt) {
 		within(qx, qy, r) {
 			if (!this._finished) throw new Error('Data not yet indexed - call index.finish().');
 
-			const {ids, coords, nodeSize} = this;
+			const { ids, coords, nodeSize } = this;
 			const stack = [0, ids.length - 1, 0];
 			const result = [];
 			const r2 = r * r;
@@ -338,23 +338,23 @@ const KnGmapClusterer = function(map, opt) {
 
 		getClusters(bbox, zoom) {
 			let minLng = ((bbox[0] + 180) % 360 + 360) % 360 - 180,
-			maxLng = bbox[2] === 180 ? 180 : ((bbox[2] + 180) % 360 + 360) % 360 - 180;
+				maxLng = bbox[2] === 180 ? 180 : ((bbox[2] + 180) % 360 + 360) % 360 - 180;
 
 			const minLat = Math.max(-90, Math.min(90, bbox[1])),
-			maxLat = Math.max(-90, Math.min(90, bbox[3]));
+				maxLat = Math.max(-90, Math.min(90, bbox[3]));
 
 			if (bbox[2] - bbox[0] >= 360) {
 				minLng = -180;
 				maxLng = 180;
 			} else if (minLng > maxLng) {
 				const easternHem = this.getClusters([minLng, minLat, 180, maxLat], zoom),
-				westernHem = this.getClusters([-180, minLat, maxLng, maxLat], zoom);
+					westernHem = this.getClusters([-180, minLat, maxLng, maxLat], zoom);
 
 				return easternHem.concat(westernHem);
 			}
 
 			const tree = this.trees[this._limitZoom(zoom)],
-			clusters = [];
+				clusters = [];
 
 			tree.range(lngX(minLng), latY(maxLat), lngX(maxLng), latY(minLat)).forEach(id => {
 				const c = tree.data[id];
@@ -366,8 +366,8 @@ const KnGmapClusterer = function(map, opt) {
 
 		getChildren(clusterId) {
 			const originId = this._getOriginId(clusterId),
-			originZoom = this._getOriginZoom(clusterId),
-			errorMsg = 'No cluster with the specified id.';
+				originZoom = this._getOriginZoom(clusterId),
+				errorMsg = 'No cluster with the specified id.';
 
 			const index = this.trees[originZoom];
 			if (!index) throw new Error(errorMsg);
@@ -376,11 +376,11 @@ const KnGmapClusterer = function(map, opt) {
 			if (!origin) throw new Error(errorMsg);
 
 			const r = GV.opt.radius / (GV.opt.extent * Math.pow(2, originZoom - 1)),
-			children = [];
+				children = [];
 
 			index.within(origin.x, origin.y, r).forEach(id => {
 				const c = index.data[id];
-				if(c.parentId === clusterId) children.push(c.numPoints ? getClusterJSON(c) : this.points[c.index]);
+				if (c.parentId === clusterId) children.push(c.numPoints ? getClusterJSON(c) : this.points[c.index]);
 			});
 
 			if (children.length === 0) throw new Error(errorMsg);
@@ -415,15 +415,15 @@ const KnGmapClusterer = function(map, opt) {
 
 		_cluster(points, zoom) {
 			const r = GV.opt.radius / (GV.opt.extent * Math.pow(2, zoom)),
-			clusters = [];
+				clusters = [];
 
-			points.forEach((p,i) => {
+			points.forEach((p, i) => {
 				if (p.zoom <= zoom) return;
 				p.zoom = zoom;
 
 				const tree = this.trees[zoom + 1],
-				neighborIds = tree.within(p.x, p.y, r),
-				numPointsOrigin = p.numPoints || 1;
+					neighborIds = tree.within(p.x, p.y, r),
+					numPointsOrigin = p.numPoints || 1;
 
 				let numPoints = numPointsOrigin;
 
@@ -434,7 +434,7 @@ const KnGmapClusterer = function(map, opt) {
 
 				if (numPoints > numPointsOrigin && numPoints >= GV.opt.minPoints) {
 					let wx = p.x * numPointsOrigin,
-					wy = p.y * numPointsOrigin;
+						wy = p.y * numPointsOrigin;
 
 					const id = (i << 5) + (zoom + 1) + this.points.length;
 
@@ -502,7 +502,7 @@ const KnGmapClusterer = function(map, opt) {
 
 	function getClusterJSON(cluster) {
 		const count = cluster.numPoints,
-		abbrev = count >= 10000 ? `${Math.round(count / 1000)}k` : (count >= 1000 ? `${Math.round(count / 100) / 10}k` : count);
+			abbrev = count >= 10000 ? `${Math.round(count / 1000)}k` : (count >= 1000 ? `${Math.round(count / 100) / 10}k` : count);
 
 		return {
 			x: xLng(cluster.x),
@@ -519,7 +519,7 @@ const KnGmapClusterer = function(map, opt) {
 
 	function latY(lat) {
 		const sin = Math.sin(lat * Math.PI / 180),
-		y = (0.5 - 0.25 * Math.log((1 + sin) / (1 - sin)) / Math.PI);
+			y = (0.5 - 0.25 * Math.log((1 + sin) / (1 - sin)) / Math.PI);
 
 		return y < 0 ? 0 : y > 1 ? 1 : y;
 	}
@@ -590,7 +590,7 @@ const KnGmapClusterer = function(map, opt) {
 	function removeIdleListener() {
 		console.log('KnGmapClusterer.removeIdleListener()');
 
-		if(!GV.idle_listener) return;
+		if (!GV.idle_listener) return;
 
 		GV.idle_listener.remove();
 		GV.idle_listener = null;
@@ -610,8 +610,8 @@ const KnGmapClusterer = function(map, opt) {
 		GV.kcluster.getClusters([bounds.getSouthWest().lng(), bounds.getSouthWest().lat(), bounds.getNorthEast().lng(), bounds.getNorthEast().lat()], zoom).forEach(c => {
 			console.log("KnGmapClusterer.drawClusters()", c);
 
-			if(c.cluster_id) {
-				if(old_markers.has('c' + c.cluster_id)) {
+			if (c.cluster_id) {
+				if (old_markers.has('c' + c.cluster_id)) {
 					console.log('KnGmapClusterer.drawClusters() cluster already on map');
 					GV.markers.set('c' + c.cluster_id, old_markers.get('c' + c.cluster_id));
 					old_markers.delete('c' + c.cluster_id);
@@ -620,7 +620,7 @@ const KnGmapClusterer = function(map, opt) {
 
 				addClusterToMap(c);
 			} else {
-				if(old_markers.has('m' + c.id)) {
+				if (old_markers.has('m' + c.id)) {
 					console.log('KnGmapClusterer.drawClusters() marker already on map');
 					GV.markers.set('m' + c.id, old_markers.get('m' + c.id));
 					old_markers.delete('m' + c.id);
@@ -656,7 +656,7 @@ const KnGmapClusterer = function(map, opt) {
 			}
 		});
 
-		if(GV.opt.clickToZoom) marker.k_click_listener = marker.addListener('click', onClusterClick);
+		if (GV.opt.clickToZoom) marker.k_click_listener = marker.addListener('click', onClusterClick);
 
 		GV.markers.set('c' + c.cluster_id, marker);
 	}
@@ -685,15 +685,15 @@ const KnGmapClusterer = function(map, opt) {
 
 		const positon = new google.maps.LatLng(m.y, m.x);
 
-		if(GV.opt.mergeDuplicates) {
-			for(const am of GV.markers) {
-				if(am[1].is_dup || !am[1].position.equals(positon)) continue;
+		if (GV.opt.mergeDuplicates) {
+			for (const am of GV.markers) {
+				if (am[1].is_dup || !am[1].position.equals(positon)) continue;
 				console.log("KnGmapClusterer.addMarkerToMap() duplicate", m.id);
 
-				if(!am[1].duplicates) am[1].duplicates = [];
+				if (!am[1].duplicates) am[1].duplicates = [];
 				am[1].duplicates.push(m.id);
 
-				GV.markers.set('m' + m.id, {is_dup: 1, setMap: () => 1});
+				GV.markers.set('m' + m.id, { is_dup: 1, setMap: () => 1 });
 				return;
 			}
 
@@ -707,7 +707,7 @@ const KnGmapClusterer = function(map, opt) {
 			position: positon
 		});
 
-		if(m.label !== undefined) marker.setLabel({
+		if (m.label !== undefined) marker.setLabel({
 			text: String(m.label),
 			color: GV.opt.markerFontColor,
 			fontSize: GV.opt.markerFontSize,
@@ -715,7 +715,7 @@ const KnGmapClusterer = function(map, opt) {
 			fontFamily: GV.opt.markerFontFamily
 		});
 
-		if(GV.opt.onMarkerClick) marker.k_click_listener = marker.addListener('click', GV.opt.onMarkerClick);
+		if (GV.opt.onMarkerClick) marker.k_click_listener = marker.addListener('click', GV.opt.onMarkerClick);
 
 		GV.markers.set('m' + m.id, marker);
 	}
@@ -727,7 +727,7 @@ const KnGmapClusterer = function(map, opt) {
 	function removeMarkerFromMap(m) {
 		console.log('KnGmapClusterer.removeMarkerFromMap()', m);
 
-		if(m.k_click_listener) m.k_click_listener.remove();
+		if (m.k_click_listener) m.k_click_listener.remove();
 		m.setMap(null);
 	}
 
@@ -739,7 +739,7 @@ const KnGmapClusterer = function(map, opt) {
 	 * set options
 	 * @param opt
 	 */
-	this.setOptions = function(opt) {
+	this.setOptions = function (opt) {
 		console.log('KnGmapClusterer.setOptions()', opt);
 
 		GV.opt = Object.assign(GV.opt || {}, opt || {});
@@ -748,24 +748,29 @@ const KnGmapClusterer = function(map, opt) {
 	/**
 	 * load points
 	 * @param points
+	 * @param autoCenterZoom
 	 */
-	this.load = function(points) {
+	this.load = function (points, autoCenterZoom = true) {
 		console.log('KnGmapClusterer.load()');
 
 		// Clear markers
 		mThis.clearMarkers();
 
 		// Min one point
-		if(points.length > 0) {
+		if (points.length > 0) {
 			// Markers bounds
 			const bounds = new google.maps.LatLngBounds();
-			points.forEach(p => bounds.extend({lat: p.y, lng: p.x}));
+			points.forEach(p => bounds.extend({ lat: p.y, lng: p.x }));
 
 			// Fit map to bounds
-			GV.map.setOptions({
-				zoom: mThis.getBoundsZoomLevel(bounds),
-				center: bounds.getCenter()
-			});
+			if (autoCenterZoom) {
+				GV.map.setOptions({
+					zoom: mThis.getBoundsZoomLevel(bounds),
+					center: bounds.getCenter()
+				});
+			} else {
+				onMapIdle();
+			}
 
 			// Load points into supercluster
 			GV.kcluster.load(points);
@@ -779,7 +784,7 @@ const KnGmapClusterer = function(map, opt) {
 	 * get markers
 	 * @return array
 	 */
-	this.getMarkers = function() {
+	this.getMarkers = function () {
 		console.log('KnGmapClusterer.getMarkers()');
 
 		return GV.markers;
@@ -788,7 +793,7 @@ const KnGmapClusterer = function(map, opt) {
 	/**
 	 * clear markers
 	 */
-	this.clearMarkers = function() {
+	this.clearMarkers = function () {
 		console.log('KnGmapClusterer.clearMarkers()');
 
 		removeIdleListener();
@@ -801,10 +806,10 @@ const KnGmapClusterer = function(map, opt) {
 	 * @param bounds
 	 * @return int
 	 */
-	this.getBoundsZoomLevel = function(bounds) {
+	this.getBoundsZoomLevel = function (bounds) {
 		function _latRad(lat) {
 			const sin = Math.sin(lat * Math.PI / 180),
-			rad_x2 = Math.log((1 + sin) / (1 - sin)) / 2;
+				rad_x2 = Math.log((1 + sin) / (1 - sin)) / 2;
 
 			return Math.max(Math.min(rad_x2, Math.PI), -Math.PI) / 2;
 		}
@@ -814,10 +819,10 @@ const KnGmapClusterer = function(map, opt) {
 		}
 
 		const ne = bounds.getNorthEast(),
-		sw = bounds.getSouthWest(),
-		lat_fraction = (_latRad(ne.lat()) - _latRad(sw.lat())) / Math.PI,
-		lng_diff = ne.lng() - sw.lng(),
-		lng_fraction = ((lng_diff < 0) ? (lng_diff + 360) : lng_diff) / 360;
+			sw = bounds.getSouthWest(),
+			lat_fraction = (_latRad(ne.lat()) - _latRad(sw.lat())) / Math.PI,
+			lng_diff = ne.lng() - sw.lng(),
+			lng_fraction = ((lng_diff < 0) ? (lng_diff + 360) : lng_diff) / 360;
 
 		return Math.min(
 			_zoom(GV.map.getDiv().offsetHeight, 256, lat_fraction),
@@ -827,4 +832,4 @@ const KnGmapClusterer = function(map, opt) {
 	}
 };
 
-KnGmapClusterer.VERSION = '4.0.1';
+KnGmapClusterer.VERSION = '4.0.2';
