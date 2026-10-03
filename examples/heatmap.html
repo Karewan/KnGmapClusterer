@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>Heatmap - KnGmapClusterer</title>
+		<link rel="stylesheet" href="./style.css">
+		<style>
+		.ctl {
+			display: grid;
+			grid-template-columns: 90px 1fr 44px;
+			align-items: center;
+			gap: 6px;
+			margin-top: 6px;
+		}
+		#legend {
+			height: 10px;
+			margin-top: 8px;
+			border-radius: 5px;
+			background: linear-gradient(
+				to right,
+				rgba(30, 142, 62, 0),
+				#1e8e3e,
+				#fbbc04,
+				#f29900,
+				#d93025,
+				#7b1fa2
+			);
+		}
+		#scale {
+			display: flex;
+			justify-content: space-between;
+			font-size: 11px;
+			opacity: 0.8;
+		}
+		</style>
+	</head>
+	<body>
+		<div id="map"></div>
+		<div class="panel">
+			<h1>Noise map (heatmap)</h1>
+			<div>
+				About 43,000 noise sensors: city traffic, and loud places (airports, stadium, race
+				circuit, festival) fading with the distance, plus isolated loud spots. Each place
+				shows the loudest nearby sensor. Display the markers and click one to see its level.
+				<a href="../index.html">← examples</a>
+			</div>
+			<div id="legend"></div>
+			<div id="scale">
+				<span>40 dB</span>
+				<span>56</span>
+				<span>72</span>
+				<span>88</span>
+				<span>104</span>
+				<span>120 dB</span>
+			</div>
+			<div class="ctl">
+				<span>Radius (m)</span>
+				<input type="range" id="radius" min="100" max="3000" step="50" value="1200">
+				<span id="radiusV">1200</span>
+			</div>
+			<div class="ctl">
+				<span>Min radius (px)</span>
+				<input type="range" id="minRadius" min="1" max="40" value="12">
+				<span id="minRadiusV">12</span>
+			</div>
+			<div class="ctl">
+				<span>Intensity</span>
+				<input type="range" id="intensity" min="0.2" max="3" step="0.1" value="1">
+				<span id="intensityV">1</span>
+			</div>
+			<div class="ctl">
+				<span>Opacity</span>
+				<input type="range" id="opacity" min="0.1" max="1" step="0.05" value="0.7">
+				<span id="opacityV">0.7</span>
+			</div>
+			<div class="row">
+				<select id="mode">
+					<option value="max">Loudest level (noise map)</option>
+					<option value="sum">Density of loud sensors</option>
+				</select>
+				<select id="gradient">
+					<option value="db">dB colors</option>
+					<option value="default">Default gradient</option>
+					<option value="fire">Fire</option>
+				</select>
+			</div>
+			<div class="row">
+				<input type="checkbox" id="heat" checked>
+				<span>heatmap</span>
+				<input type="checkbox" id="markers">
+				<span>markers (no clustering)</span>
+				<input type="checkbox" id="clusters">
+				<span>clusters</span>
+			</div>
+			<div id="info"></div>
+		</div>
+		<script type="module" src="./heatmap.ts"></script>
+	</body>
+</html>

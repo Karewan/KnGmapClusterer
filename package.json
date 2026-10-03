@@ -1,12 +1,75 @@
 {
 	"name": "kn-gmap-clusterer",
+	"version": "5.0.0",
+	"description": "Ultra fast WebGL marker clusterer, routes and map manager for Google Maps (raster maps, no mapId required)",
 	"author": "Florent VIALATTE",
-	"version": "4.0.2",
-	"devDependencies": {
-		"gulp": "^4.0.2",
-		"gulp-header-comment": "^0.9.0",
-		"gulp-rename": "^2.0.0",
-		"gulp-terser": "^2.1.0"
+	"license": "MIT",
+	"type": "module",
+	"keywords": [
+		"google-maps",
+		"gmap",
+		"cluster",
+		"clusterer",
+		"markerclusterer",
+		"supercluster",
+		"webgl",
+		"route",
+		"polyline",
+		"vue"
+	],
+	"files": [
+		"dist"
+	],
+	"sideEffects": false,
+	"main": "./dist/index.js",
+	"module": "./dist/index.js",
+	"types": "./dist/types/index.d.ts",
+	"unpkg": "./dist/kn-gmap-clusterer.umd.js",
+	"jsdelivr": "./dist/kn-gmap-clusterer.umd.js",
+	"exports": {
+		".": {
+			"types": "./dist/types/index.d.ts",
+			"import": "./dist/index.js",
+			"default": "./dist/kn-gmap-clusterer.umd.js"
+		},
+		"./vue": {
+			"types": "./dist/types/vue/index.d.ts",
+			"import": "./dist/vue.js"
+		},
+		"./package.json": "./package.json"
 	},
-	"packageManager": "pnpm@9.13.2+sha512.88c9c3864450350e65a33587ab801acf946d7c814ed1134da4a924f6df5a2120fd36b46aab68f7cd1d413149112d53c7db3a4136624cfd00ff1846a0c6cef48a"
+	"scripts": {
+		"dev": "vite",
+		"build": "vite build && vite build --mode umd && tsc -p tsconfig.build.json && node --experimental-strip-types scripts/fix-dts.ts",
+		"typecheck": "tsc --noEmit",
+		"lint": "biome check",
+		"fix": "biome check --write",
+		"test": "node --experimental-strip-types --test \"tests/**/*.test.ts\"",
+		"check": "pnpm lint && pnpm typecheck && pnpm test",
+		"prepublishOnly": "pnpm check && pnpm build"
+	},
+	"peerDependencies": {
+		"vue": "^3.5.0"
+	},
+	"peerDependenciesMeta": {
+		"vue": {
+			"optional": true
+		}
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.5.15",
+		"@googlemaps/markerclusterer": "^2.6.2",
+		"@types/google.maps": "^3.66.5",
+		"@types/node": "^24.19.1",
+		"typescript": "~6.0.3",
+		"vite": "^8.3.2",
+		"vue": "^3.5.43"
+	},
+	"engines": {
+		"node": ">=24"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/Karewan/KnGmapClusterer.git"
+	}
 }

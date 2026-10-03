@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>Maps management - KnGmapClusterer</title>
+		<link rel="stylesheet" href="./style.css">
+		<style>
+		#views {
+			position: fixed;
+			inset: 0;
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+		}
+		.view {
+			position: relative;
+			border: 2px solid transparent;
+		}
+		.view.active {
+			border-color: var(--accent);
+		}
+		#thumb {
+			display: block;
+			max-width: 100%;
+			margin-top: 8px;
+			border-radius: 6px;
+		}
+		</style>
+	</head>
+	<body>
+		<div id="views">
+			<div class="view" id="left"></div>
+			<div class="view" id="right"></div>
+		</div>
+		<div class="panel">
+			<h1>KnMaps</h1>
+			<div>
+				A single Google Maps instance moved between two views (never recreated), OSM / IGN
+				tiles, light / dark / auto theme. <a href="../index.html">← examples</a>
+			</div>
+			<div class="row">
+				<button type="button" id="move">Move the map</button>
+				<select id="theme">
+					<option value="auto">Auto theme</option>
+					<option value="light">Light</option>
+					<option value="dark">Dark</option>
+				</select>
+				<select id="type">
+					<option value="roadmap">Google roadmap</option>
+					<option value="hybrid">Google hybrid</option>
+					<option value="osm">OpenStreetMap</option>
+					<option value="osm_fr">OpenStreetMap FR</option>
+					<option value="ign_plan">IGN Plan</option>
+					<option value="ign_photos">IGN Photos</option>
+				</select>
+			</div>
+			<div id="info"></div>
+			<img id="thumb" alt="Static map">
+		</div>
+		<script type="module" src="./maps.ts"></script>
+	</body>
+</html>

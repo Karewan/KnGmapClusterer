@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>Markers - KnGmapClusterer</title>
+		<link rel="stylesheet" href="./style.css">
+	</head>
+	<body>
+		<div id="map"></div>
+		<div class="panel">
+			<h1>Markers without clustering</h1>
+			<div>
+				One marker with <code>load()</code>, several with <code>add()</code>, removed with
+				<code>remove()</code>, moved with <code>refresh()</code>. Right click on the map to
+				add a marker, click a marker to remove it. <a href="../index.html">← examples</a>
+			</div>
+			<div class="row">
+				<button type="button" id="move">Moving vehicle</button>
+				<button type="button" id="clear">Remove the added markers</button>
+			</div>
+			<div id="info"></div>
+		</div>
+		<script type="module" src="./markers.ts"></script>
+	</body>
+</html>

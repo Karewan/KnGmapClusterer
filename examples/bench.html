@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>Benchmark - KnGmapClusterer</title>
+		<link rel="stylesheet" href="./style.css">
+		<style>
+		.panel {
+			max-width: min(560px, calc(100vw - 24px));
+		}
+		table {
+			width: 100%;
+			margin-top: 8px;
+			border-collapse: collapse;
+			font-variant-numeric: tabular-nums;
+		}
+		th,
+		td {
+			padding: 3px 6px;
+			border-bottom: 1px solid var(--border);
+			text-align: right;
+		}
+		th:first-child,
+		td:first-child {
+			text-align: left;
+		}
+		</style>
+		<!-- v4 (legacy, global script) -->
+		<script src="./legacy/kn_gmap_clusterer_v4.min.js"></script>
+		<script>
+		window.KnGmapClustererV4 = KnGmapClusterer;
+		</script>
+	</head>
+	<body>
+		<div id="map"></div>
+		<div class="panel">
+			<h1>Benchmark</h1>
+			<div>
+				Same map, same points. “Load” = until the first render, “pan” = average duration of
+				a frame while the map moves.
+				<a href="../index.html">← examples</a>
+			</div>
+			<div class="row" id="counts"></div>
+			<div class="row">
+				<input type="checkbox" id="google">
+				<span>include @googlemaps/markerclusterer (slow above 50k)</span>
+			</div>
+			<table>
+				<thead>
+					<tr>
+						<th>Lib</th>
+						<th>Points</th>
+						<th>Load</th>
+						<th>Pan (ms / frame)</th>
+					</tr>
+				</thead>
+				<tbody id="results"></tbody>
+			</table>
+			<div id="info"></div>
+		</div>
+		<script type="module" src="./bench.ts"></script>
+	</body>
+</html>

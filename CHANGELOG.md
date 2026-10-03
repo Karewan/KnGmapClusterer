@@ -1,6 +1,24 @@
 KnGmapClusterer Changelog
 ==========
 
+5.0.0 (unreleased):
+----------------------------
+* Breaking change: full rewrite in strict TypeScript, published on npm (ESM + UMD + types)
+* Breaking change: new options and API (see the migration guide in the README)
+* WebGL2 rendering on raster maps (no mapId needed): 200k+ markers stay fluid
+* Clustering 30 to 40% faster than supercluster 9 (hashed grid index, int32 coordinates), index built in a Web Worker
+* add(), remove() and refresh() for a few markers (with or without clustering)
+* Dynamic cluster style (closure), declarative aggregates (sum, min, max, avg, countBy), donut clusters
+* Pinned markers (never clustered), duplicates spiderfied, browsed in the info window or merged, filters, zoom animations
+* Info window styled with CSS (one per map, closed by a click outside), Vue content with the #info slot
+* SVG icons builder (knSvg): pins and badges with glyphs
+* KnZoneLayer: exact perimeter (concave hull) of groups of points instead of clusters, opened on click, optional clustering inside the opened zone
+* KnHeatmapLayer: weighted heatmap (value of each point), GPU accumulation in a float texture, density (sum) or strongest value (max) mode, radius in px or meters
+* KnRouteLayer: routes with direction arrows, per segment color, zoom dependent points, statistics
+* KnMaps: Google Maps loader and instances manager (reuse), OSM / IGN tile layers, themes, Street View
+* staticMapUrl(), KnHtmlMarker, Vue 3 components (kn-gmap-clusterer/vue)
+* Fixed: first render with old data when autoCenterZoom = false, nothing drawn when the view did not change on load, markers without id overwriting each other
+
 4.0.2 (2025-03-08):
 ----------------------------
 * Added autoCenterZoom paramater to the load method

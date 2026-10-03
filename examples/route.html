@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>Route - KnGmapClusterer</title>
+		<link rel="stylesheet" href="./style.css">
+	</head>
+	<body>
+		<div id="map"></div>
+		<div class="panel">
+			<h1>Route</h1>
+			<div>
+				40,000 GPS points, color by speed, direction arrows, points visible from zoom 15,
+				start / end / events always visible.
+				<a href="../index.html">← examples</a>
+			</div>
+			<div class="row">
+				<button type="button" id="speed" class="active">Speed color</button>
+				<button type="button" id="plain">Plain color</button>
+				<button type="button" id="arrows" class="active">Arrows</button>
+			</div>
+			<div id="info"></div>
+		</div>
+		<script type="module" src="./route.ts"></script>
+	</body>
+</html>

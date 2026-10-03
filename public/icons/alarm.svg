@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="28" height="40" viewBox="0 0 28 40">
+	<title>Alarm</title>
+	<path
+		d="M14 1C7 1 1 6.6 1 13.6 1 23 14 39 14 39s13-16 13-25.4C27 6.6 21 1 14 1z"
+		fill="#d93025"
+		stroke="#fff"
+		stroke-width="2" />
+	<path d="M14 7l7 12H7z" fill="#fff" />
+	<rect x="13" y="11" width="2" height="4" fill="#d93025" />
+	<rect x="13" y="16" width="2" height="2" fill="#d93025" />
+</svg>

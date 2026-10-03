@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>Zones - KnGmapClusterer</title>
+		<link rel="stylesheet" href="./style.css">
+	</head>
+	<body>
+		<div id="map"></div>
+		<div class="panel">
+			<h1>Zones</h1>
+			<div>
+				Each point has a group id and a label: instead of clusters, the exact perimeter of
+				each group is drawn (concave hull through the outermost markers, no margin). Click a
+				zone to show its markers, elsewhere or on × to close it.
+				<a href="../index.html">← examples</a>
+			</div>
+			<div class="row">
+				<select id="concavity">
+					<option value="1">Concavity 1 (tightest)</option>
+					<option value="2" selected>Concavity 2</option>
+					<option value="4">Concavity 4</option>
+					<option value="Infinity">Convex hull</option>
+				</select>
+			</div>
+			<div class="row">
+				<input type="checkbox" id="cluster">
+				<span>clustering inside the opened zone</span>
+			</div>
+			<div id="info"></div>
+		</div>
+		<script type="module" src="./zones.ts"></script>
+	</body>
+</html>

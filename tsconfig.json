@@ -1,0 +1,52 @@
+{
+	"compilerOptions": {
+		"target": "es2022",
+		"lib": [
+			"es2023",
+			"dom",
+			"dom.iterable"
+		],
+		"module": "esnext",
+		"moduleResolution": "bundler",
+		"types": [
+			"google.maps",
+			"vite/client",
+			"node"
+		],
+
+		"strict": true,
+		"noUncheckedIndexedAccess": true,
+		"exactOptionalPropertyTypes": true,
+		"noImplicitOverride": true,
+		"noImplicitReturns": true,
+		"noPropertyAccessFromIndexSignature": true,
+		"noFallthroughCasesInSwitch": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"useUnknownInCatchVariables": true,
+		"forceConsistentCasingInFileNames": true,
+
+		"verbatimModuleSyntax": true,
+		"isolatedModules": true,
+		"declaration": true,
+		"isolatedDeclarations": true,
+		"erasableSyntaxOnly": true,
+		"allowImportingTsExtensions": true,
+		"rewriteRelativeImportExtensions": true,
+		"resolveJsonModule": true,
+		"skipLibCheck": true,
+		"noEmit": true
+	},
+	"include": [
+		"src",
+		"tests",
+		"examples",
+		"scripts",
+		"vite.config.ts"
+	],
+	"exclude": [
+		"examples/legacy",
+		"dist",
+		"node_modules"
+	]
+}

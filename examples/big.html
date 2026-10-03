@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>Big volumes - KnGmapClusterer</title>
+		<link rel="stylesheet" href="./style.css">
+	</head>
+	<body>
+		<div id="map"></div>
+		<div class="panel">
+			<h1>Big volumes</h1>
+			<div>
+				Index built in a Web Worker above 20k points.
+				<a href="../index.html">← examples</a>
+			</div>
+			<div class="row" id="counts"></div>
+			<div class="row">
+				<input type="checkbox" id="nocluster">
+				<span>no clustering (every point)</span>
+			</div>
+			<div id="info"></div>
+			<div id="fps"></div>
+		</div>
+		<script type="module" src="./big.ts"></script>
+	</body>
+</html>

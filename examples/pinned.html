@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>Pinned and duplicates - KnGmapClusterer</title>
+		<link rel="stylesheet" href="./style.css">
+		<style>
+		#depots {
+			max-height: 30vh;
+			overflow: auto;
+		}
+		#depots button {
+			font-size: 12px;
+		}
+		</style>
+	</head>
+	<body>
+		<div id="map"></div>
+		<div class="panel">
+			<h1>Pinned, duplicates, filter</h1>
+			<div>
+				Alarms are pinned: never clustered, always visible. The purple markers are depots:
+				several vehicles at the exact same position. Click one of them (or a depot below).
+				<a href="../index.html">← examples</a>
+			</div>
+			<div class="row">
+				<select id="duplicates">
+					<option value="info">Duplicates: info window previous / next</option>
+					<option value="spiderfy">Duplicates: spiderfy</option>
+					<option value="merge">Duplicates: merged (badge)</option>
+					<option value="none">Duplicates: none</option>
+				</select>
+			</div>
+			<div class="row">
+				<input type="checkbox" id="filter">
+				<span>only value ≥ 50</span>
+			</div>
+			<div class="row" id="depots"></div>
+			<div id="info"></div>
+		</div>
+		<script type="module" src="./pinned.ts"></script>
+	</body>
+</html>

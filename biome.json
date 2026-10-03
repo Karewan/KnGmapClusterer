@@ -1,0 +1,78 @@
+{
+	"$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+	"files": {
+		"includes": [
+			"src/**",
+			"examples/**",
+			"public/**",
+			"tests/**",
+			"scripts/**",
+			"index.html",
+			"vite.config.ts",
+			"package.json",
+			"tsconfig.json",
+			"tsconfig.build.json",
+			"biome.json",
+			".vscode/settings.json",
+			"!dist",
+			"!examples/legacy",
+			"!tests/fixtures"
+		]
+	},
+	"formatter": {
+		"enabled": true,
+		"lineEnding": "lf",
+		"indentWidth": 4,
+		"indentStyle": "tab",
+		"lineWidth": 100,
+		"bracketSameLine": true,
+		"bracketSpacing": true,
+		"attributePosition": "auto",
+		"expand": "always",
+		"formatWithErrors": true
+	},
+	"linter": {
+		"enabled": true,
+		"rules": {
+			"style": {
+				"useBlockStatements": "on"
+			},
+			"complexity": {
+				"useLiteralKeys": "off"
+			}
+		}
+	},
+	"assist": {
+		"enabled": true
+	},
+	"html": {
+		"experimentalFullSupportEnabled": true,
+		"formatter": {
+			"enabled": true
+		}
+	},
+	"css": {
+		"parser": {
+			"tailwindDirectives": true
+		}
+	},
+	"overrides": [
+		{
+			"includes": [
+				"**/*.vue"
+			],
+			"linter": {
+				"rules": {
+					"style": {
+						"useConst": "off",
+						"useImportType": "off"
+					},
+					"correctness": {
+						"noUnusedVariables": "off",
+						"noUnusedImports": "off"
+					}
+				}
+			}
+		}
+	]
+}

@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>KnGmapClusterer examples</title>
+		<style>
+		:root {
+			color-scheme: light dark;
+		}
+		body {
+			max-width: 720px;
+			margin: 40px auto;
+			padding: 0 16px;
+			font:
+				15px / 1.5 system-ui,
+				sans-serif;
+		}
+		li {
+			margin: 6px 0;
+		}
+		code {
+			font-size: 13px;
+		}
+		</style>
+	</head>
+	<body>
+		<h1>KnGmapClusterer v5 — examples</h1>
+		<p>
+			API key in <code>.env.local</code> (<code>VITE_GMAPS_KEY=...</code>). Without a key,
+			Google displays the maps in development mode.
+		</p>
+		<ul>
+			<li>
+				<a href="examples/basic.html">Basic clustering</a>
+				— 5,000 points, default options
+			</li>
+			<li>
+				<a href="examples/markers.html">Markers</a>
+				— one or several markers without clustering, add, remove, move
+			</li>
+			<li>
+				<a href="examples/svg.html">SVG markers</a>
+				— SVG pins and badges, gallery, donut by category
+			</li>
+			<li>
+				<a href="examples/big-svg.html">Big volume, SVG</a>
+				— 200k real SVG markers without clustering
+			</li>
+			<li>
+				<a href="examples/big.html">Big volumes</a>
+				— from 10k to 1M points, worker, FPS
+			</li>
+			<li>
+				<a href="examples/style.html">Dynamic style</a>
+				— color from a closure, aggregates, donut, SVG/PNG icons
+			</li>
+			<li>
+				<a href="examples/pinned.html">Pinned and duplicates</a>
+				— always visible points, stacked duplicates, filter
+			</li>
+			<li>
+				<a href="examples/heatmap.html">Heatmap</a>
+				— noise map in decibels, weighted heatmap, markers with info window
+			</li>
+			<li>
+				<a href="examples/zones.html">Zones</a>
+				— group perimeters (instead of clusters), open on click
+			</li>
+			<li>
+				<a href="examples/route.html">Route</a>
+				— line with arrows, points by zoom, start/end/events, stats
+			</li>
+			<li>
+				<a href="examples/maps.html">Maps management</a>
+				— KnMaps, OSM/IGN tiles, theme, reuse, static map
+			</li>
+			<li><a href="examples/vue.html">Vue 3</a> — components and instance reuse</li>
+			<li>
+				<a href="examples/bench.html">Benchmark</a>
+				— v4 vs v5 vs @googlemaps/markerclusterer
+			</li>
+		</ul>
+	</body>
+</html>
