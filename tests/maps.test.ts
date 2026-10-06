@@ -82,6 +82,24 @@ describe("knTiles", () => {
 		assert.equal(osm.getTileUrl(0, -1, 2), null);
 	});
 
+	test("referrer policy forced for OSM, overridable", () => {
+		assert.equal(knTiles.osm().referrerPolicy, "strict-origin-when-cross-origin");
+		assert.equal(knTiles.osmFr().referrerPolicy, "strict-origin-when-cross-origin");
+		assert.equal(
+			knTiles.osm({
+				referrerPolicy: null,
+			}).referrerPolicy,
+			null,
+		);
+		assert.equal(
+			knTiles.osm({
+				referrerPolicy: "origin",
+			}).referrerPolicy,
+			"origin",
+		);
+		assert.equal(knTiles.ignPlan().referrerPolicy, null);
+	});
+
 	test("subdomains", () => {
 		const fr = knTiles.osmFr();
 		assert.equal(fr.getTileUrl(0, 0, 3), "https://a.tile.openstreetmap.fr/osmfr/3/0/0.png");

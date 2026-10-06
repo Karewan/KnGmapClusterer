@@ -1,7 +1,12 @@
 KnGmapClusterer Changelog
 ==========
 
-5.0.0 (unreleased):
+5.0.1 (2026-10-06):
+----------------------------
+* Tile layers: referrerPolicy option (forced on the tile images, even when the page is in no-referrer)
+* Fixed: OSM tiles refused when the page is in no-referrer, the origin is now always sent as Referer (knTiles.osm / osmFr, referrerPolicy: null to keep the page policy)
+
+5.0.0 (2026-10-03):
 ----------------------------
 * Breaking change: full rewrite in strict TypeScript, published on npm (ESM + UMD + types)
 * Breaking change: new options and API (see the migration guide in the README)

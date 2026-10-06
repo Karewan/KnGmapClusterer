@@ -257,6 +257,10 @@ staticMapUrl(apiKey, { x: 2.35, y: 48.85 }); // thumbnail URL (satellite, 458x25
 Custom tiles: `knTiles.xyz({ id, name, url: "https://.../{z}/{x}/{y}.png" })` or
 `knTiles.wmts({ id, name, url, layer, format })`.
 
+`referrerPolicy` (all layers) forces the referrer policy of the tile images, even when the page is in
+`no-referrer`. The OSM layers use `"strict-origin-when-cross-origin"` by default (the OSM tile servers
+reject requests without Referer), `knTiles.osm({ referrerPolicy: null })` keeps the page policy.
+
 ## Vue 3
 
 ```ts

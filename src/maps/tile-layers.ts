@@ -11,6 +11,8 @@ export interface KnTileLayer {
 	readonly maxZoom: number;
 	/** attribution displayed when the layer is active */
 	readonly attribution: string | null;
+	/** referrer policy forced on the tile requests, null = policy of the document */
+	readonly referrerPolicy: ReferrerPolicy | null;
 	/** URL of a tile, null outside of the world */
 	getTileUrl(x: number, y: number, zoom: number): string | null;
 	/** Create the Google Maps map type */
@@ -24,6 +26,11 @@ interface BaseOptions {
 	readonly maxZoom?: number;
 	readonly attribution?: string | null;
 	readonly tileSize?: number;
+	/**
+	 * Referrer policy forced on the tile images, overrides the policy of the document
+	 * (ex: 'strict-origin-when-cross-origin' when the app is in no-referrer), null = not forced
+	 */
+	readonly referrerPolicy?: ReferrerPolicy | null;
 }
 
 export interface KnXyzOptions extends BaseOptions {
@@ -79,12 +86,16 @@ function createLayer(
 		minZoom: o.minZoom ?? 0,
 		maxZoom: o.maxZoom ?? 19,
 		attribution: o.attribution ?? null,
+		referrerPolicy: o.referrerPolicy ?? null,
 		getTileUrl(x, y, zoom) {
 			const t = normalize(x, y, zoom);
 			return t ? url(t[0], t[1], zoom) : null;
 		},
 		create() {
 			const size = o.tileSize ?? 256;
+			if (layer.referrerPolicy !== null) {
+				return imgMapType(layer, size, layer.referrerPolicy);
+			}
 			return new google.maps.ImageMapType({
 				name: o.name,
 				alt: o.name,
@@ -96,6 +107,50 @@ function createLayer(
 		},
 	};
 	return layer;
+}
+
+/**
+ * Map type with our own <img> tiles: ImageMapType does not allow to set
+ * the referrer policy of its images
+ */
+function imgMapType(
+	layer: KnTileLayer,
+	size: number,
+	referrerPolicy: ReferrerPolicy,
+): google.maps.MapType {
+	return {
+		name: layer.name,
+		alt: layer.name,
+		minZoom: layer.minZoom,
+		maxZoom: layer.maxZoom,
+		tileSize: new google.maps.Size(size, size),
+		projection: null,
+		radius: 6378137,
+		getTile(coord, zoom, doc) {
+			const img = doc.createElement("img");
+			img.referrerPolicy = referrerPolicy;
+			img.alt = "";
+			img.draggable = false;
+			img.style.cssText = `width:${size}px;height:${size}px;border:0;padding:0;margin:0;max-width:none;user-select:none`;
+			// no broken image icon
+			img.onerror = () => {
+				img.style.visibility = "hidden";
+			};
+			const src = layer.getTileUrl(coord.x, coord.y, zoom);
+			if (src) {
+				img.src = src;
+			} else {
+				img.style.visibility = "hidden";
+			}
+			return img;
+		},
+		releaseTile(tile) {
+			if (tile instanceof HTMLImageElement) {
+				tile.onerror = null;
+				tile.removeAttribute("src");
+			}
+		},
+	};
 }
 
 /** XYZ tiles (OpenStreetMap like) */
@@ -137,6 +192,8 @@ function wmts(o: KnWmtsOptions): KnTileLayer {
 }
 
 const OSM_ATTRIBUTION = "© OpenStreetMap contributors";
+/** OSM tile servers reject the requests without Referer (tile usage policy) */
+const OSM_REFERRER: ReferrerPolicy = "strict-origin-when-cross-origin";
 const IGN_WMTS = "https://data.geopf.fr/wmts";
 
 type Overrides = Partial<BaseOptions>;
@@ -154,16 +211,20 @@ export const knTiles: {
 } = {
 	xyz,
 	wmts,
-	/** OpenStreetMap (single domain, the a/b/c subdomains are deprecated) */
+	/**
+	 * OpenStreetMap (single domain, the a/b/c subdomains are deprecated),
+	 * the origin is always sent as Referer (referrerPolicy: null to keep the policy of the document)
+	 */
 	osm: (o = {}) =>
 		xyz({
 			id: "osm",
 			name: "OpenStreetMap",
 			url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
 			attribution: OSM_ATTRIBUTION,
+			referrerPolicy: OSM_REFERRER,
 			...o,
 		}),
-	/** OpenStreetMap France */
+	/** OpenStreetMap France (origin always sent as Referer, like osm) */
 	osmFr: (o = {}) =>
 		xyz({
 			id: "osm_fr",
@@ -171,6 +232,7 @@ export const knTiles: {
 			url: "https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png",
 			maxZoom: 20,
 			attribution: OSM_ATTRIBUTION,
+			referrerPolicy: OSM_REFERRER,
 			...o,
 		}),
 	/** IGN Plan v2 */

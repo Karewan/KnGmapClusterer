@@ -1,6 +1,6 @@
 {
 	"name": "kn-gmap-clusterer",
-	"version": "5.0.0",
+	"version": "5.0.1",
 	"description": "Ultra fast WebGL marker clusterer, routes and map manager for Google Maps (raster maps, no mapId required)",
 	"author": "Florent VIALATTE",
 	"license": "MIT",
